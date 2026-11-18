@@ -2,7 +2,7 @@
 
 ### A Markov-Chain Test Against the Correct Random-Matrix Null
 
-Chan Tsz Him Chris — November 2026 · HKU Trading Group Quant Team (analyst contributors: Chan Tsz Him Chris, Aidarkhan Zhubatkan, Sojin Jeon)
+Chan Tsz Him Chris, Aidarkhan Zhubatkan, Sojin Jeon — HKU Trading Group Quant Team, November 2026
 
 This repository holds the paper and the full analysis notebook. The paper defines the daily S&P 500 sector "laggard" (the SPDR sector ETF with the lowest return) as the state of a Markov chain and asks whether today's laggard tells us anything about tomorrow's.
 
