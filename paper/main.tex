@@ -7,50 +7,63 @@
 \usepackage{caption}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \usepackage{enumitem}
+\usepackage{multirow}
 
 \newtheorem{proposition}{Proposition}
 \newtheorem{definition}{Definition}
-\newtheorem{corollary}{Corollary}
 
 \title{Is Sector Rotation Predictable?\\
 A Markov-Chain Test Against the Correct Random-Matrix Null}
 
-\author{Chan Tsz Him Chris}
-\date{July 23, 2026}
+\author{Chan Tsz Him Chris\thanks{HKU Trading Group Quant Team. Analyst contributors: Chan Tsz Him Chris, Aidarkhan Zhubatkan and Sojin Jeon.}}
+\date{November 2026}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-We formalize ``sector leadership rotation'' in the S\&P 500 as a discrete-time Markov chain and ask whether the resulting dynamics contain genuine predictive structure or are statistically indistinguishable from noise. We first address a construction problem that is often skipped: a matrix of pairwise conditional probabilities $\mathbb P(B\!\uparrow \mid A\!\downarrow)$ is not a valid transition matrix, because no single categorical state is defined and the row-sum-to-one constraint is violated. We resolve this by defining the state as the sector with the worst same-period return (the \emph{laggard}) and estimate the resulting chain on eleven SPDR sector ETFs using CRSP daily data, 2010--2024. We characterize the chain's ergodic properties (irreducibility, aperiodicity, stationary distribution, recurrence and hitting times) and its spectral structure (eigenvalues, spectral gap, mixing time, complex eigenvalue pairs). The central methodological contribution is testing this spectral structure against the \emph{correct} null model for a row-stochastic matrix --- the circular law for random Markov matrices \cite{bordenave2012} --- rather than the Marchenko--Pastur law, which applies to sample covariance matrices and is structurally inapplicable here. Using both a closed-form disk-radius approximation and a 5{,}000-replication permutation bootstrap, we find that every non-Perron eigenvalue of the estimated chain is statistically indistinguishable from what a random stochastic matrix of the same size would produce. We show this null result is consistent with the microstructure of the underlying products: cap-weighted sector ETFs, unlike equal-weight or daily-rebalanced leveraged funds, embed no mechanical rebalancing flow that would force mean-reverting or momentum-driven serial structure onto the laggard sequence.
+Traders describe sector rotation as money leaving one sector for another, but a matrix of pairwise conditional probabilities is not a valid model of it. We define the state on each day as the laggard, the sector with the lowest return, which gives a Markov chain on the eleven SPDR sector ETFs, estimated on daily data from 2018 to 2024. To separate structure from estimation noise, we derive the relevant benchmark from the circular law for random matrices with a variance profile. Without memory, the non-Perron eigenvalues of an estimated transition matrix fall within a disk of radius $\sqrt{(n-1)/N}$, 0.078 in our sample. A pre-specified family of three tests, whose power we measure on simulated chains, finds no first-order memory ($p = 0.36$, $0.21$ and $0.58$), although it would detect broad persistence or rotation of $|\lambda| \approx 0.05$. Out of sample, models that use past laggards forecast worse than the laggard's unconditional frequency. Dependence at lags of two to eight days is detectable in the sample but small, and it does not improve forecasts in the models we tested. The result holds across alternative estimators, state definitions and sampling schemes.
 \end{abstract}
 
 \clearpage
 \section{Introduction}
+\label{sec:intro}
 
-On a day when a large semiconductor name disappoints, the technology sector sells off and capital appears to rotate into other leaders (financials, say, or utilities). Traders describe this informally as ``sector rotation,'' and the natural instinct is to encode it as a matrix of conditional probabilities: given that sector $A$ fell today, what is the probability sector $B$ leads tomorrow? That instinct does not survive contact with the actual definition of a Markov chain.
+On a day when a large semiconductor company disappoints, the technology sector sells off and money appears to move into other sectors, financials or utilities, say. Traders call this sector rotation, and a natural way to model it is a matrix of conditional probabilities: given that sector $A$ fell today, how likely is sector $B$ to rise tomorrow? That matrix is not a Markov transition matrix. All eleven sectors move every day, so there is no single state for the market to be in, and the rows of such a matrix need not sum to one.
 
-On any given day \emph{all} eleven sectors move simultaneously; there is no single ``current state'' the market occupies, so a chain cannot be defined directly on the vector of sector returns without first collapsing it to a categorical label. And even a well-intentioned analyst who forces a $\mathbb P(B\!\uparrow \mid A\!\downarrow)$ table to look like a transition matrix will find its rows do not actually sum to one, because the events ``$B$ rises'' for different $B$ are not mutually exclusive.
+We fix the construction by collapsing each day to one state, the laggard, defined as the sector with the lowest return. This gives a valid Markov chain on eleven states and a precise version of the rotation question: does the identity of today's laggard tell us anything about tomorrow's? If it does, the chain has memory that a trader could use. If it does not, every row of the transition matrix equals the same distribution, and tomorrow's laggard is drawn afresh each day.
 
-This paper works through the correct construction end to end: a cleanly defined single-state-per-period object, a transition law estimated from real CRSP sector-ETF data, a full characterization as a Markov chain (stationarity, recurrence, hitting times, spectral gap, cyclical structure), and a test of whether the resulting spectral structure is real or a finite-sample artifact, using the null model actually appropriate for a row-stochastic matrix instead of the one (Marchenko--Pastur) reflexively reached for in the empirical finance literature. We close by connecting the statistical result to a microstructural mechanism: whether an index's rebalancing rule injects mean-reverting or momentum flow into its constituent dynamics, and why cap-weighted products should not be expected to.
+The answer matters either way. A laggard that predicts the next day's laggard would be a simple signal on some of the most liquid funds in the market. A laggard that does not would mean that a model of daily rotation needs more information than which sector fell today.
+
+Answering the question is mainly a problem of benchmarks. An estimated transition matrix always shows some structure, because its rows are estimated from finite samples, and the question is whether that structure is larger than estimation noise. The benchmark most often used for random matrices in finance, the Marchenko--Pastur law \cite{marchenkopastur1967}, applies to covariance matrices and not to transition matrices. A circular law for random Markov matrices \cite{bordenave2012} does apply to transition matrices, but it describes a matrix whose rows are uniformly random rather than estimated from data, and its radius is too wide for a sample of our size.
+
+This paper makes three contributions. First, it sets out a legitimate state space for sector rotation and estimates the resulting chain on the eleven SPDR sector ETFs from 2018 to 2024. Second, it derives the noise benchmark for an estimated transition matrix from the circular law for random matrices with a variance profile \cite{cooketal2018}. Without memory, the non-Perron eigenvalues fall within a disk of radius $\sqrt{(n-1)/N}$, where $n$ is the number of states and $N$ the number of transitions. Third, it tests the chain with a pre-specified family of three tests whose power is measured by simulation, and checks the answer with out-of-sample forecasts.
+
+\section{Roadmap}
+
+Section~\ref{sec:related} reviews related work. Section~\ref{sec:state} constructs the state space, Section~\ref{sec:data} describes the data, and Section~\ref{sec:estimation} explains how the chain is estimated. Section~\ref{sec:chain} describes the estimated chain. Section~\ref{sec:null} derives the noise benchmark, and Section~\ref{sec:tests} measures the power of the tests and applies them. Section~\ref{sec:robust} reports robustness checks and Section~\ref{sec:oos} out-of-sample forecasts. Section~\ref{sec:discussion} discusses the result and its limitations, and Section~\ref{sec:conclusion} concludes. The appendices give the full matrices, a worked example, the definitions and test statistics, the derivation of the noise radius, and further detail on the robustness checks and forecasts.
 
 \clearpage
 \section{Related Work}
 \label{sec:related}
 
-This paper sits at the intersection of three literatures that are not usually brought together: regime-switching models of markets, the empirical evidence on sector rotation as a strategy, and random matrix theory applied to financial data.
+This paper draws on three literatures: Markov and regime-switching models of markets, empirical work on sector rotation, and random matrix theory in finance. It also uses standard tools from forecast evaluation.
 
-\subsection{Regime-switching and Markov models in finance}
+\subsection{Markov and regime-switching models}
 
-Treating a financial time series as governed by a small number of discrete, unobserved states goes back to \cite{hamilton1989}, whose Markov-switching autoregression became the standard tool for dating business-cycle regimes from macroeconomic data. That literature typically models a \emph{latent} state (e.g.\ ``expansion'' vs.\ ``recession'') inferred via maximum likelihood from an observed continuous series. Our setup differs in kind, not just application: the state $S_t$ (the daily laggard sector) is directly \emph{observed}, not inferred, which is what allows the transition matrix to be estimated by simple counting (Section~\ref{sec:estimation}) rather than by filtering. This also means the two constructions face different failure modes: Hamilton-style regime models must contend with state misclassification from the estimation procedure itself, while our chain's main threat to validity is the construction problem addressed in Section~\ref{sec:state}, defining a legitimate single state per period in the first place.
+Modelling a financial series as moving between a small number of discrete states became common after Hamilton \cite{hamilton1989}, whose Markov-switching autoregression is now the standard tool for dating business-cycle regimes. In that literature the state, such as expansion or recession, is latent and inferred from a continuous series by maximum likelihood. Our state, the daily laggard, is observed directly, so the transition matrix can be estimated by counting transitions rather than by filtering. The two approaches therefore face different risks. Regime models must deal with misclassified states, while the main risk for our chain is defining a legitimate state in the first place, which Section~\ref{sec:state} addresses.
 
-\subsection{Sector rotation as an empirical strategy}
+\subsection{Sector rotation}
 
-``Sector rotation'' is better documented as a practitioner heuristic than as a robust empirical regularity. \cite{moskowitzgrinblatt1999} showed that industry-level momentum accounts for much of the individual-stock momentum anomaly, i.e.\ that sectors as a group do exhibit return persistence at monthly-to-annual horizons. Tested directly as a market-timing strategy, however, the evidence is considerably weaker: \cite{jacobsenetal2009} find that a sector-rotation strategy with \emph{perfect foresight} of the business-cycle stage, and no transaction costs, would have generated at best a 2.3\% annual outperformance over 1948--2007, an upper bound that erodes quickly once foresight and costs are made realistic. More recently, \cite{molchanovstangl2024} report no systematic evidence of the sector outperformance patterns conventional sector-rotation wisdom predicts across business-cycle stages at all. Our result is a different, and in one sense more basic, negative finding: these prior papers ask whether a business-cycle-\emph{timed} sector rotation strategy is profitable, while we ask whether the day-to-day \emph{identity} of the laggard sector carries any Markov memory whatsoever, independent of any macro-timing signal. Given the monthly-momentum evidence of \cite{moskowitzgrinblatt1999}, the two horizons need not agree, and our null result at the one-day horizon is not in tension with theirs at the monthly one.
+Sector rotation is better established as a practitioner heuristic than as an empirical regularity. Moskowitz and Grinblatt \cite{moskowitzgrinblatt1999} show that industry momentum accounts for much of the momentum in individual stocks, so sectors do show persistent returns at monthly to annual horizons. Tested as a market-timing strategy, the evidence is weaker. Stangl et al.\ \cite{stangletal2009} find that rotating across sectors with perfect foresight of the business-cycle stage, and without transaction costs, would have earned at most 2.3\% a year over the market from 1948 to 2007, and Molchanov and Stangl \cite{molchanovstangl2024} find no systematic evidence of the sector performance patterns that conventional rotation advice predicts across the cycle. These papers ask whether rotation timed to the business cycle is profitable. We ask a narrower question, whether the day-to-day identity of the laggard carries any memory, independent of any macro signal. Given the monthly momentum documented by Moskowitz and Grinblatt \cite{moskowitzgrinblatt1999}, a null result at the daily horizon need not conflict with persistence at longer horizons.
 
 \subsection{Random matrix theory in finance}
 
-The idea that a financial correlation or transition matrix should be benchmarked against its random-matrix null, rather than interpreted directly, dates to \cite{lalouxetal1999} and \cite{plerouetal2000}, who independently showed that the great majority of eigenvalues of empirical stock-return correlation matrices are statistically indistinguishable from the Marchenko--Pastur spectrum of a matrix built from pure noise; see \cite{bouchaudpotters2009} for a broader review. That entire line of work, however, benchmarks \emph{symmetric} correlation matrices against Marchenko--Pastur, which is exactly the null we show in Section~\ref{sec:rmt} does \emph{not} apply to a non-symmetric, row-stochastic transition matrix. Our use of the circular law for random Markov matrices \cite{bordenave2012} in its place is the natural analogue of the Laloux--Plerou research program for the object we actually estimate, and, as far as we are aware, sector-rotation dynamics have not previously been tested against it.
+The idea that an estimated financial matrix should be compared with its random-matrix null before it is interpreted dates to Laloux et al.\ \cite{lalouxetal1999} and Plerou et al.\ \cite{plerouetal2000}, who showed that most eigenvalues of empirical stock-return correlation matrices are indistinguishable from the Marchenko--Pastur spectrum of pure noise \cite{marchenkopastur1967}; Bouchaud and Potters \cite{bouchaudpotters2009} review later work. That literature studies symmetric correlation matrices, and Section~\ref{sec:mp} explains why the same benchmark does not apply to a transition matrix. For random Markov matrices, Bordenave et al.\ \cite{bordenave2012} prove a circular law: when the rows are drawn independently and uniformly, the non-Perron eigenvalues fill a disk of radius $1/\sqrt n$, which we call the Dirichlet radius. An estimated transition matrix is a different object, a fixed matrix plus estimation noise whose variance differs across entries. Cook et al.\ \cite{cooketal2018} give the limiting spectrum of random matrices with such a variance profile, and Section~\ref{sec:radius} applies their result to obtain the noise radius for our chain. As far as we are aware, sector rotation has not previously been tested against a random-matrix benchmark.
+
+\subsection{Forecast evaluation}
+
+A statistically significant pattern in the sample need not improve forecasts. We therefore evaluate out-of-sample forecasts with the log score, a strictly proper scoring rule that rewards a forecast for the probability it gives to the outcome that occurs \cite{gneitingraftery2007}, and compare forecasters with the test of equal predictive accuracy of Diebold and Mariano \cite{dieboldmariano1995}, using the variance estimator of Newey and West \cite{neweywest1987} to allow for serial correlation in the score differences.
 
 \clearpage
 \section{Constructing a Legitimate State Space}
@@ -58,342 +71,697 @@ The idea that a financial correlation or transition matrix should be benchmarked
 
 \subsection{Why a pairwise conditional-probability matrix fails}
 
-Consider a matrix $M$ with entries $M_{AB} = \mathbb P(B\!\uparrow \mid A\!\downarrow)$, estimated across all sector pairs. It fails as a Markov transition matrix for two separate reasons.
+Consider a matrix $M$ with entries $M_{AB} = \mathbb P(r_{B,t+1} > 0 \mid r_{A,t} < 0)$, the probability that sector $B$ rises tomorrow given that sector $A$ fell today, estimated over all pairs of sectors. $M$ cannot serve as a Markov transition matrix, for two reasons.
 
-\emph{(i) No single current state.} A Markov chain requires a well-defined state $S_t$ that the system occupies at each time $t$, with transitions $S_t \to S_{t+1}$. Every period, though, all $n$ sectors move at once. The ``state'' of the market on day $t$ is really an $n$-dimensional return vector $(r_{1,t},\dots,r_{n,t})$, not a single categorical label, and $M$ implicitly treats \emph{every sector} as simultaneously ``the'' current state. That is incoherent: $A$ falling does not preclude nine other sectors from also falling or rising in the same period, so there is no unique antecedent to condition on.
+The first is that there is no single current state. A Markov chain needs a state $S_t$ that the system occupies at each time $t$, with transitions $S_t \to S_{t+1}$. On any trading day, however, all $n$ sectors move at once, so the position of the market on day $t$ is the return vector $(r_{1,t},\dots,r_{n,t})$ rather than one categorical label. $M$ treats every sector as the current state at the same time. A fall in sector $A$ does not stop the other sectors from rising or falling on the same day, so there is no unique antecedent to condition on.
 
-\emph{(ii) Rows need not sum to one.} Even fixing a reference sector $A$, the events ``$B$ rises'' for different $B\neq A$ are not mutually exclusive: on a given day multiple sectors can rise together, or none can. Summing $\mathbb P(B\!\uparrow\mid A\!\downarrow)$ over $B$ therefore double-counts joint outcomes and violates the law of total probability; $\sum_B M_{AB}$ can exceed or fall short of 1 depending on the realized correlation structure. Forcing normalization onto such a table produces something row-stochastic by fiat, with no meaning as a transition law.
+The second is that the rows of $M$ need not sum to one. For a fixed sector $A$, the events ``$B$ rises the next day'' for different $B \neq A$ are not mutually exclusive, because several sectors can rise together, or none can. Summing $M_{AB}$ over $B$ therefore counts joint outcomes more than once, and a row can sum to more or less than one depending on how correlated the sectors were in the sample. Rescaling the rows would make $M$ row-stochastic, but the result would have no meaning as a transition law.
 
-\subsection{Resolution: a single categorical state}
+\subsection{A single categorical state}
 
-We collapse each period to exactly one state by defining
+We collapse each period to one state by defining
 \begin{equation}
 S_t \;=\; \arg\min_{i \in \{1,\dots,n\}} r_{i,t},
+\label{eq:laggard}
 \end{equation}
-the \emph{laggard sector} (the sector with the worst return in period $t$). Because $\arg\min$ selects a unique index (ties aside, which do not occur in our continuous return data), the market occupies exactly one of $n$ states each period, and
+the laggard sector, that is, the sector with the lowest return in period $t$. Because the $\arg\min$ selects one index, the market occupies exactly one of $n$ states in each period, and
 \begin{equation}
 P_{ij} \;=\; \mathbb P(S_{t+1} = j \mid S_t = i)
 \end{equation}
-is now a genuine transition probability. (An analogous construction with $\arg\max$ defines a ``leader'' chain; we use the laggard definition throughout, following the source problem set this paper extends.)
+is a genuine transition probability.
 
-\begin{definition}[Row-stochastic matrix]
-An $n\times n$ matrix $P$ is a (row-)stochastic transition matrix if and only if
-\begin{equation}
-\text{(1)}\quad P_{ij} \ge 0 \ \ \forall i,j, \qquad\qquad \text{(2)}\quad \sum_{j=1}^n P_{ij} = 1 \ \ \forall i.
-\end{equation}
-\end{definition}
+Unlike $M$, $P$ is a row-stochastic matrix by construction, with non-negative entries and rows that sum to one (Definition~\ref{def:stoch}, Appendix~\ref{app:defs}). Exactly one transition $S_t \to S_{t+1}$ is observed in each period, so the transition counts $n_{ij}$ used to estimate $P$ (Section~\ref{sec:estimation}) partition the sample, and each row sums to one. A table such as $M$ still answers a valid question about a pair of sectors, how often $B$ rises the day after $A$ falls. It does not describe how the market as a whole moves from one state to the next.
 
-Unlike $M$ above, $P$ satisfies both conditions by construction: at each $t$ exactly one transition $S_t \to S_{t+1}$ is observed, so the counts $n_{ij}$ used to estimate $P$ (Section~\ref{sec:estimation}) partition the sample exhaustively and $\sum_j P_{ij}=1$ follows automatically. A conditional-probability contingency table like $M$ remains the right tool for a different question --- \emph{co-movement}, e.g. ``how often does $B$ rise alongside $A$ falling'' --- but it answers a static association question, not a dynamic state-transition question, and the two objects should not be conflated.
+Three details of the construction matter for what follows. First, we use total returns, which include dividends. Price returns fall on each fund's ex-dividend date by roughly the dividend paid, so high-yield sectors such as Utilities and Real Estate would be recorded as laggards on those dates for a reason unrelated to trading. Second, ties are possible because returns are reported to six decimal places. Our sample contains one, on 2019-06-20, when Health Care and Financials both returned 0.4396\%. We assign the tie to the sector listed first, and breaking it the other way leaves every conclusion unchanged (Section~\ref{sec:robust}). Third, replacing the $\arg\min$ in Eq.~\eqref{eq:laggard} with an $\arg\max$ defines a leader chain, which we use as a check on the choice of state.
 
 \clearpage
 \section{Data}
 \label{sec:data}
 
-We use the eleven SPDR Select Sector ETFs as tradable proxies for the GICS sectors: Technology (XLK), Health Care (XLV), Financials (XLF), Consumer Discretionary (XLY), Communication Services (XLC), Industrials (XLI), Consumer Staples (XLP), Energy (XLE), Utilities (XLU), Real Estate (XLRE), and Materials (XLB). Daily total returns (CRSP \texttt{dsf}, split- and dividend-adjusted) are pulled via WRDS for 2010-01-01 through 2024-12-31, matched to PERMNOs via \texttt{crsp.stocknames}, yielding 37{,}934 sector-day observations.
+We use the eleven SPDR Select Sector ETFs as tradable proxies for the GICS sectors: Technology (XLK), Health Care (XLV), Financials (XLF), Consumer Discretionary (XLY), Communication Services (XLC), Industrials (XLI), Consumer Staples (XLP), Energy (XLE), Utilities (XLU), Real Estate (XLRE) and Materials (XLB). Daily total returns, which are split-adjusted and include dividends, come from the CRSP daily stock file \cite{crsp} for 2010-01-01 to 2024-12-31. Funds are matched to their CRSP identifiers (PERMNOs) through the CRSP name history, giving 37{,}934 sector-day observations.
 
-Sanity checks: 2 missing return observations (0.005\% of the sample), zero returns exceeding 50\% in magnitude, and a 0.995 correlation between CRSP's total return field and a price-only return reconstructed independently from the price series (the residual gap is attributable to dividends, which CRSP's total return correctly includes). All 11 sectors are present with zero duplicate (sector, date) pairs.
+The data pass basic checks. Two return observations are missing (0.005\% of the sample), no daily return exceeds 50\% in absolute value, and there are no duplicate sector-date pairs. As a check on the dividend adjustment, CRSP's total return has a correlation of 0.995 with a price-only return rebuilt from the price series, and the remaining gap is consistent with dividends, which only the total return includes.
 
-The panel is unbalanced: XLC (Communication Services) launched in June 2018 and XLRE (Real Estate) in October 2015, while the remaining nine sectors trade from January 2010. We therefore restrict the Markov-chain analysis to the \emph{common period}, 2018-06-20 through 2024-12-31 (1{,}644 trading days, 1{,}643 transitions), where all 11 states are simultaneously well-defined. A weekly-frequency series (Friday-to-Friday compounded returns, 342 weeks) is used only for the data-adequacy discussion in Section~\ref{sec:sparsity}.
+The panel is unbalanced. XLC began trading in June 2018 and XLRE in October 2015, while the other nine funds trade throughout. The laggard is only comparable across days if it is chosen from the same set of sectors, so we restrict the chain to the period in which all eleven funds trade, 2018-06-20 to 2024-12-31. This common period has 1{,}644 trading days and 1{,}643 transitions. For the robustness checks in Section~\ref{sec:robust} we also form weekly returns, compounded from Friday to Friday over the same period (342 weeks, 341 transitions).
+
+All numbers, tables and figures in this paper are produced by a single notebook from the extracted returns. The notebook fixes the random seed, so a rerun reproduces every result exactly, and it checks the transition counts against Table~\ref{tab:counts} before any test is run.
 
 \clearpage
-\section{Estimation: Maximum Likelihood and Smoothing}
+\section{Estimation}
 \label{sec:estimation}
 
-\subsection{A worked example}
+\subsection{Maximum likelihood and Laplace smoothing}
 
-A small hand-worked three-state (Technology, Financials, Energy) example illustrating this estimation and smoothing procedure is given in Appendix~\ref{app:toy}.
+We count the number of days on which the laggard moves from each sector to each other sector. The maximum-likelihood estimate $\hat P$ of each transition probability is the share of transitions out of a sector that go to a given sector. Our main specification instead uses the Laplace-smoothed estimate $\tilde P$, which adds one pseudo-count ($\alpha = 1$) to every cell before taking shares. Appendix~\ref{app:defs} gives the likelihood and both estimators. The full count matrix and $\tilde P$ are reported in Appendix~\ref{app:matrices}, and a three-state example of both estimators is worked through in Appendix~\ref{app:toy}.
 
 \subsection{Free parameters and data adequacy}
 \label{sec:sparsity}
 
-For a general $n$-state chain, $P$ has $n^2$ entries but each row loses one degree of freedom to the sum-to-one constraint, leaving
-\begin{equation}
-\#\text{free parameters} = n(n-1).
-\end{equation}
-For our $n=11$ sector universe this is $110$. A standard rule of thumb calls for roughly 10--20 observed transitions per parameter for reliable MLE estimation, i.e.\ 1{,}100--2{,}200 transitions. Our common-period daily sample provides 1{,}643 transitions (14.9 per parameter); the weekly sample provides only 341 (3.1 per parameter) --- comfortably adequate at daily frequency, badly under-identified at weekly frequency. This motivates two design choices: daily data over weekly, and, were data even scarcer, a small number of macro regimes (e.g.\ $k=3$) instead of $n=11$ raw sectors, since $k(k-1)=6$ free parameters would make even the weekly sample generous (56.8 transitions per parameter).
+An $n$-state chain has $n^2$ transition probabilities, but each row loses one degree of freedom because it must sum to one, leaving $n(n-1)$ free parameters. With $n=11$ this is 110. A common rule of thumb asks for 10 to 20 transitions per parameter, that is, 1{,}100 to 2{,}200 transitions. The daily sample has 1{,}643 (14.9 per parameter), which is adequate, while the weekly sample has only 341 (3.1 per parameter). We therefore use daily data for the main analysis and keep the weekly chain as a robustness check.
 
-\subsection{Laplace smoothing}
+The data are also spread unevenly across rows. Energy is the laggard on 387 of the 1{,}643 transitions, Industrials on only 45, and only one of the 121 cells is empty: Industrials never follows itself. Because the other ten diagonal entries are positive and every other transition is observed, the raw estimate $\hat P$ is already irreducible and aperiodic, so smoothing is not needed to make the chain ergodic.
 
-We apply additive (Laplace) smoothing,
-\begin{equation}
-\tilde P_{ij} \;=\; \frac{n_{ij}+\alpha}{n_{i\cdot}+\alpha n}, \qquad \alpha = 1,
-\end{equation}
-to every row. Applied to the toy Energy row ($n_{E\cdot}=2$, $n=3$ states), this gives
-\begin{equation}
-\tilde P_{E,\cdot} = \left(\frac{1+1}{2+3},\ \frac{1+1}{2+3},\ \frac{0+1}{2+3}\right) = (0.400,\ 0.400,\ 0.200)
-\end{equation}
-in $(T,F,E)$ order, replacing the zero with a small positive probability. Removing that zero entry has real consequences for the estimator: a zero can render the estimated chain \emph{reducible} in finite samples, because if some state $j$ is never reached from $i$, no power $P^k$ can guarantee positivity from $i$ to $j$, and this would block the Perron--Frobenius guarantees (unique stationary distribution, convergence to it) that the remainder of the paper relies on. We apply the same $\alpha=1$ smoothing to the empirical 11-sector count matrix before any spectral analysis; the full smoothed matrix appears in Table~\ref{tab:daily_ptilde} (Appendix~\ref{app:matrices}), with raw counts in Table~\ref{tab:daily_counts}.
+\subsection{Why the smoothing choice does not affect inference}
+
+Smoothing does change the point estimates. One pseudo-count per cell adds 11 observations to each row, about 3\% of the Energy row but about 20\% of the Industrials row, and it shrinks every row towards the uniform distribution. The stationary probability of Energy falls from 0.2355 under $\hat P$ to 0.2256 under $\tilde P$, and that of Industrials rises from 0.0274 to 0.0317. We therefore report the raw frequencies alongside the smoothed estimates in Section~\ref{sec:chain}.
+
+Smoothing does not drive the test results. Every null distribution in Sections~\ref{sec:null} and \ref{sec:tests} is built by applying the same estimator to sequences without memory, so the shrinkage applies equally to the data and to the null. Repeating the main test with $\alpha = 0$, $\alpha = 0.5$, and with pseudo-counts placed in proportion to the stationary distribution instead of uniformly moves the largest non-Perron modulus between 0.084 and 0.092, while its permutation $p$-value stays between 0.21 and 0.22 (Section~\ref{sec:robust}).
 
 \clearpage
-\section{Ergodic Properties}
-\label{sec:ergodic}
+\section{The Estimated Chain}
+\label{sec:chain}
 
-\begin{proposition}[Perron--Frobenius, see e.g.\ \cite{seneta2006,norris1998}]
-If $P$ is irreducible (some power $P^k$ is entrywise positive) and aperiodic (the greatest common divisor of return-time lengths at every state is 1), then $P$ has a unique stationary distribution $\pi$ satisfying $\pi P = \pi$, $\sum_i \pi_i = 1$, $\pi_i>0\ \forall i$, and $P^t \to \mathbf 1 \pi$ as $t\to\infty$ from every initial distribution.
-\end{proposition}
+The estimated chain is ergodic, and it is close to the rank-one matrix $\mathbf 1\pi$ in which every row equals the stationary distribution. In such a chain tomorrow's laggard does not depend on today's, which is the hypothesis Sections~\ref{sec:null} and \ref{sec:tests} test formally.
 
-We verify both conditions directly on the empirical daily smoothed matrix $\tilde P$: every diagonal entry $\tilde P_{ii}>0$ (Table~\ref{tab:daily_ptilde}), which makes the chain aperiodic by inspection, and $\tilde P$ itself is entrywise positive, irreducible already at $k=1$ with minimum entry $0.0179$. Both hold, so the chain is ergodic and $\pi$ is unique.
+\subsection{Ergodicity}
 
-\subsection{Toy example}
+By the Perron--Frobenius theorem, a chain that is irreducible and aperiodic has a unique stationary distribution $\pi$ and converges to it from any starting state (Proposition~\ref{prop:pf}, Appendix~\ref{app:defs}). Both conditions hold for $\tilde P$. Every entry of $\tilde P$ is positive, with a minimum of 0.0179, so the chain is irreducible in one step and aperiodic because every state can return to itself in one step. As noted in Section~\ref{sec:sparsity}, the same holds for $\hat P$, whose only zero is the Industrials diagonal.
 
-The stationary-distribution and recurrence-time calculations below are illustrated first on a small hand-worked three-state example in Appendix~\ref{app:toy}.
+\subsection{Stationary distribution and recurrence}
 
-\subsection{Empirical stationary distribution and recurrence times}
+We compute $\pi$ as the left eigenvector of $\tilde P$ for eigenvalue 1. Table~\ref{tab:pi} reports it next to the raw laggard frequencies, together with the mean recurrence time, which is the reciprocal of the stationary probability \cite{kemenysnell1976}. Energy is by far the most frequent laggard ($\pi = 0.2256$, raw frequency 0.2354), returning on average every 4.4 trading days. Industrials is the rarest ($\pi = 0.0317$, raw frequency 0.0274), returning every 31.5 days, or every 36.5 days on the raw frequency. Smoothing matters most for rare states, which is why both columns are shown. A parametric bootstrap from $\hat P$ (1{,}000 simulated sequences of the same length) gives 95\% intervals of $[0.207, 0.246]$ for the stationary probability of Energy and $[0.025, 0.039]$ for Industrials.
 
-For the 11-sector daily chain, $\pi$ is obtained as the (normalized) left eigenvector of $\tilde P$ associated with eigenvalue 1; we verify $\|\pi \tilde P - \pi\| = 1.5\times10^{-16}$, i.e.\ numerically exact. Table~\ref{tab:pi} reports $\pi$ and the mean recurrence time $\mu_i = 1/\pi_i$ (Kac's lemma \cite{kemenysnell1976}) for every sector. Energy is by far the most frequent laggard ($\pi=0.226$, recurring every 4.4 trading days on average); Industrials is the rarest ($\pi=0.032$, recurring only every 31.5 days).
-
-\input{table_pi.tex}
+\begin{table}[htbp]\centering
+\caption{Stationary distribution of $\tilde P$, raw laggard frequencies and mean recurrence times (Rec., trading days), daily chain, 2018-06-20 to 2024-12-31.}
+\label{tab:pi}
+\begin{tabular}{lcccc}
+\toprule
+Sector & $\pi_i$ & Raw freq. & Rec. & Rec.\ (raw) \\
+\midrule
+Energy & 0.2256 & 0.2354 & 4.4 & 4.2 \\
+Utilities & 0.1327 & 0.1356 & 7.5 & 7.4 \\
+Technology & 0.1015 & 0.1022 & 9.9 & 9.8 \\
+Real Estate & 0.1009 & 0.1016 & 9.9 & 9.8 \\
+Communication & 0.0822 & 0.0815 & 12.2 & 12.3 \\
+Consumer Disc. & 0.0743 & 0.0730 & 13.5 & 13.7 \\
+Health Care & 0.0680 & 0.0663 & 14.7 & 15.1 \\
+Consumer Staples & 0.0669 & 0.0651 & 15.0 & 15.4 \\
+Materials & 0.0612 & 0.0596 & 16.3 & 16.8 \\
+Financials & 0.0550 & 0.0523 & 18.2 & 19.1 \\
+Industrials & 0.0317 & 0.0274 & 31.5 & 36.5 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Hitting times}
 
-The expected first-passage (hitting) time $h_{ij} = \mathbb E[\min\{t\ge0 : S_t=j\} \mid S_0=i]$ solves the linear system
-\begin{equation}
-h_{ij} = 1 + \sum_{k} \tilde P_{ik}\, h_{kj} \quad (i \ne j), \qquad h_{jj}=0,
-\end{equation}
-solved separately for each target $j$ as an $(n-1)$-dimensional linear system with a boundary row fixing $h_{jj}=0$. The full $11\times11$ hitting-time matrix is reported in Table~\ref{tab:hitting} (Appendix~\ref{app:matrices}); consistent with $\pi$, Energy is reached fastest from any starting sector (mean hitting time 4.1 days) and Industrials slowest (28.3 days).
+The expected hitting time $H_{ij}$ is the mean number of days until the laggard first reaches sector $j$ starting from sector $i$; it solves a linear system given in Appendix~\ref{app:diag}. Averaged over starting sectors $i \neq j$, the laggard reaches Energy in 4.55 trading days (95\% interval $[4.16, 5.00]$) and Industrials in 31.15 days ($[25.4, 40.0]$). The full matrix (Table~\ref{tab:hitting}) has almost constant columns: the time to reach Energy ranges only from 4.3 to 4.7 days across the ten starting sectors. If every row of $P$ equalled $\pi$, the time to reach $j$ would be geometric with mean $1/\pi_j$ whatever the starting sector, and the columns would be exactly constant. The hitting times are close to that benchmark, which is a first sign that the starting state carries little information.
 
-\clearpage
-\section{Spectral Analysis}
-\label{sec:spectral}
+\subsection{Spectrum and mixing}
 
-\subsection{Toy example: spectral gap and a complex eigenvalue pair}
-
-The spectral-gap and complex-eigenvalue calculations below are illustrated first on a small hand-worked three-state example, including a cyclic case with a complex eigenvalue pair, in Appendix~\ref{app:toy}.
-
-\subsection{Empirical spectrum}
-
-The eigenvalues of the empirical daily $\tilde P$, sorted by modulus, are given in Table~\ref{tab:eig}. The Perron eigenvalue is $\lambda_0=1$ exactly (verified to machine precision), consistent with Perron--Frobenius. The second-largest modulus is $|\lambda_1|=0.0844$, giving spectral gap
-\begin{equation}
-\gamma = 1 - |\lambda_1| = 0.9156,
-\end{equation}
-relaxation time $1/\gamma \approx 1.09$ trading days, and a total-variation mixing time $\tau_{\text{mix}}(\varepsilon{=}0.01)\approx 8.8$ days using the standard bound $\|P^t(x,\cdot)-\pi\|_{TV} \le |\lambda_1|^t/(2\sqrt{\pi_{\min}})$ \cite{levinperes2017}. Starting from Technology, the total-variation distance to $\pi$ falls from $0.076$ at $t=1$ to $2\times10^{-6}$ by $t=5$: the chain mixes almost immediately. Three complex conjugate eigenvalue pairs are present (Table~\ref{tab:eig}), with implied cycle periods between 2.3 and 14.2 trading days, but all are damped to under 1\% of their initial amplitude within two steps. Section~\ref{sec:rmt} tests formally whether any of this is cyclical structure or noise.
+Table~\ref{tab:eig} lists the eigenvalues of $\tilde P$. Apart from the Perron eigenvalue $\lambda_0 = 1$, the largest in modulus is real, $\lambda_1 = 0.0844$, so the spectral gap, one minus $|\lambda_1|$, is 0.916 (95\% interval $[0.854, 0.919]$) and the relaxation time, its reciprocal, is 1.09 trading days. Three complex pairs imply cycles of 2.3, 3.6 and 14.2 trading days, but their moduli are at most 0.069, so any such cycle loses over 99\% of its amplitude within two days.
 
 \begin{table}[htbp]\centering
-\caption{Eigenvalues of the daily smoothed transition matrix $\tilde P$ (11 sectors, common period), sorted by modulus.}
+\caption{Non-Perron eigenvalues of $\tilde P$, sorted by modulus. The period of a complex pair is $2\pi/|\arg\lambda|$.}
 \label{tab:eig}
-\begin{tabular}{lccl}
+\begin{tabular}{lcccc}
 \toprule
-$\lambda$ & Value & $|\lambda|$ & Note \\
+ & Re $\lambda$ & Im $\lambda$ & $|\lambda|$ & Period (days) \\
 \midrule
-$\lambda_0$ & $1.0000$ & $1.0000$ & Perron root \\
-$\lambda_1$ & $0.0844$ & $0.0844$ & real \\
-$\lambda_{2,3}$ & $-0.0116 \pm 0.0678i$ & $0.0688$ & complex pair, period $\approx3.6$ days \\
-$\lambda_{4,5}$ & $-0.0482 \pm 0.0208i$ & $0.0525$ & complex pair, period $\approx2.3$ days \\
-$\lambda_6$ & $-0.0380$ & $0.0380$ & real \\
-$\lambda_{7,8}$ & $0.0250 \pm 0.0118i$ & $0.0276$ & complex pair, period $\approx14.2$ days \\
-$\lambda_9$ & $0.0105$ & $0.0105$ & real \\
-$\lambda_{10}$ & $0.0015$ & $0.0015$ & real \\
+$\lambda_1$ & $0.0844$ & $0.0000$ & 0.0844 & -- \\
+$\lambda_{2,3}$ & $-0.0116$ & $\pm 0.0678$ & 0.0688 & 3.6 \\
+$\lambda_{4,5}$ & $-0.0482$ & $\pm 0.0208$ & 0.0525 & 2.3 \\
+$\lambda_6$ & $-0.0380$ & $0.0000$ & 0.0380 & -- \\
+$\lambda_{7,8}$ & $0.0250$ & $\pm 0.0118$ & 0.0276 & 14.2 \\
+$\lambda_9$ & $0.0105$ & $0.0000$ & 0.0105 & -- \\
+$\lambda_{10}$ & $0.0015$ & $0.0000$ & 0.0015 & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+We compute the mixing time directly from the powers of $\tilde P$ rather than from a spectral bound, because the standard bounds assume a reversible chain \cite{levinperes2017}. The worst-case total-variation distance to $\pi$ is 0.137 after one day and 0.0093 after two, so the mixing time to within 0.01 is two trading days (Appendix~\ref{app:diag}). Within two days the laggard has effectively forgotten where it started.
 
 \clearpage
-\section{The Correct Random-Matrix Null}
-\label{sec:rmt}
+\section{The Correct Null}
+\label{sec:null}
 
-The eigenvalues in Table~\ref{tab:eig} are small in absolute terms, but ``small'' is not itself a statistical statement: it says nothing without a null distribution to compare against.
+The small eigenvalues in Table~\ref{tab:eig} could be weak structure or estimation noise. Deciding between the two needs a benchmark for how large the eigenvalues of an estimated transition matrix are when there is no structure at all.
 
-\subsection{Why Marchenko--Pastur does not apply}
+\subsection{Why the Marchenko--Pastur law does not apply}
+\label{sec:mp}
 
-The Marchenko--Pastur (MP) law \cite{marchenkopastur1967} describes the limiting eigenvalue distribution of a sample covariance matrix $\frac1T XX^\top$, where $X$ is a $p\times T$ matrix of i.i.d.\ mean-zero entries, in the joint limit $p,T\to\infty$ with $p/T\to c\in(0,\infty)$. Four structural mismatches make it inapplicable to our transition matrix $\tilde P$:
-\begin{enumerate}[label=(\roman*)]
-\item $\frac1T XX^\top$ is symmetric and positive semi-definite; $\tilde P$ is neither --- it is a general (non-symmetric) row-stochastic matrix.
-\item MP entries are (asymptotically) i.i.d.\ across the whole matrix; the entries within a row of $\tilde P$ are \emph{not} independent, since they are constrained to sum to 1.
-\item $\tilde P$ has a structural eigenvalue pinned exactly at $\lambda_0=1$ by the row-stochasticity constraint; the MP spectrum has no such fixed point and is centered differently depending on the aspect ratio $c$.
-\item MP is an asymptotic result requiring $p,T\to\infty$ jointly; our matrix is $n=11$, nowhere near that regime, and $p/T$ has no natural analogue here (there is no ``covariance sample size'' underlying $\tilde P$'s row constraint).
-\end{enumerate}
+Random matrix theory entered empirical finance through the Marchenko--Pastur law \cite{marchenkopastur1967}, which gives the eigenvalue distribution of a sample covariance matrix built from pure noise and has been used to separate signal from noise in stock-return correlation matrices \cite{lalouxetal1999,plerouetal2000}. That law describes a symmetric, positive semi-definite matrix with real, non-negative eigenvalues. A transition matrix is none of these. It is not symmetric, its eigenvalues are in general complex, its rows are constrained to sum to one, and one eigenvalue is fixed at 1. The Marchenko--Pastur law therefore has no bearing on $\tilde P$; Appendix~\ref{app:mp} sets out the mismatch in full.
 
-\subsection{Circular law for random Markov matrices}
+\subsection{The noise radius}
+\label{sec:radius}
 
-The appropriate null instead comes from \cite{bordenave2012}: for an $n\times n$ matrix with i.i.d.\ rows drawn uniformly on the probability simplex (equivalently, $\mathrm{Dirichlet}(1,\dots,1)$), the Perron eigenvalue is exactly 1 by construction, and as $n\to\infty$ the remaining $n-1$ eigenvalues become asymptotically uniformly distributed over a disk in the complex plane centered at the origin with radius
+Under the null of no memory, every row of $P$ equals $\pi$, and all non-Perron eigenvalues are exactly zero. What we observe is an estimate equal to that matrix plus estimation noise, and the non-Perron eigenvalues of the estimate are exactly the eigenvalues of the noise. The noise in each entry has mean zero and a variance that depends on how many transitions its row contains and on how frequent its column sector is. Cook et al.\ \cite{cooketal2018} show that the eigenvalues of a random matrix with such a variance profile fill a disk whose radius is set by the profile. For an estimated transition matrix with $n$ states and $N$ transitions, the radius is
 \begin{equation}
-r_n \;\approx\; \frac{1}{\sqrt n}.
+r = \sqrt{\frac{n-1}{N}}.
+\label{eq:radius}
 \end{equation}
-For $n=11$, $r_{11} = 1/\sqrt{11} \approx 0.3015$. We cross-check this asymptotic formula against a direct Monte Carlo simulation: 1{,}000 independently drawn $11\times11$ Dirichlet-row stochastic matrices yield 10{,}000 non-Perron eigenvalues with mean modulus $0.179$, 95th-percentile modulus $0.308$, and 99th-percentile modulus $0.367$ (Figure~\ref{fig:circular}), close to the asymptotic radius even at this modest $n$, with the expected upward finite-sample correction at the tail.
+Appendix~\ref{app:radius} derives this result. With $n = 11$ and $N = 1{,}643$, $r = 0.078$. The radius does not depend on $\pi$, so the uneven row sizes in Section~\ref{sec:sparsity} need no adjustment. It is close to one over the square root of the average number of transitions per row, 0.082, and it matches the mean of the largest non-Perron modulus under our permutation null, 0.076.
 
-\subsection{Toy example: a genuine signal}
+The benchmark usually cited for random Markov matrices is the circular law with radius $1/\sqrt n$ \cite{bordenave2012}. That result describes a matrix whose rows are drawn from a uniform Dirichlet distribution, which behaves like a row estimated from about $n$ observations. It is the special case of Eq.~\eqref{eq:radius} in which each row has about $n$ transitions. Our rows have about 149 transitions each, so the Dirichlet radius of 0.30 is almost four times too wide, and a test against it would miss any structure smaller than that. A Monte Carlo check confirms the Dirichlet scale (mean largest modulus 0.182, 95th percentile 0.307).
 
-Applying this null to the toy cyclic example of Appendix~\ref{app:toy}: $|\lambda_2|\approx0.70$ is far outside the disk of radius $\approx0.30$, so that hypothetical chain \emph{would} constitute a statistically genuine cyclical signal.
+Two caveats limit how Eq.~\eqref{eq:radius} can be used. The noise entries within a row are not independent, because each row of $\hat P$ sums to one, and the theorem is asymptotic. We therefore use $r$ as the scale of the noise and base inference on the permutation null below.
 
-\subsection{Empirical result: no detectable signal}
-
-Every non-Perron eigenvalue of the empirical $\tilde P$ has modulus $\le0.084$ (Table~\ref{tab:eig}), well inside the $\approx0.30$ noise disk. Figure~\ref{fig:circular} overlays the observed spectrum on the simulated circular-law cloud; all eigenvalues sit deep in the bulk.
+Figure~\ref{fig:spectrum} places the eigenvalues of $\tilde P$ against these benchmarks. The largest, 0.084, lies just outside the asymptotic radius but inside the 95\% band of the permutation null.
 
 \begin{figure}[htbp]\centering
-\includegraphics[width=0.95\textwidth]{figures/circular_law_benchmark.png}
-\caption{Observed eigenvalues of the daily $\tilde P$ (red crosses) against the circular-law null generated from 1{,}000 Dirichlet-row random stochastic matrices (gray cloud), with 95\% and 99\% radii marked.}
-\label{fig:circular}
+\includegraphics[width=0.6\textwidth]{figures/spectrum_noise_disk.pdf}
+\caption{Non-Perron eigenvalues of $\tilde P$ against the noise radius $\sqrt{(n-1)/N} = 0.078$ (solid), the 95th percentile of the largest modulus for simulated sequences without memory, 0.098 (dashed), and the Dirichlet radius $1/\sqrt n = 0.30$ (dotted).}
+\label{fig:spectrum}
 \end{figure}
 
-\subsection{Permutation bootstrap}
+\subsection{Permutation null}
+\label{sec:perm}
 
-The asymptotic disk radius is an $n\to\infty$ approximation and does not reflect our unequal row sample sizes $n_{i\cdot}$; at $n=11$, edge effects and the specific finite-sample count structure both matter. We therefore also run a permutation bootstrap: shuffle the observed 1{,}644-day laggard sequence (preserving its marginal state frequencies exactly), re-estimate $\tilde P$ with the same $\alpha=1$ smoothing, and recompute its spectrum. Repeating 5{,}000 times yields an exact finite-sample null distribution tailored to our data and estimator, instead of relying on the idealized Dirichlet-row generative assumption.
+For exact finite-sample inference we shuffle the observed laggard sequence 5{,}000 times. Each shuffle keeps the marginal frequency of every sector but destroys any dependence on time. We apply the same estimator, including the smoothing, to each shuffled sequence, and the $p$-value of a statistic is the share of shuffles in which it is at least as large as in the data. With 5{,}000 shuffles the Monte Carlo standard error of a $p$-value near 0.21 is about 0.006.
 
-Table~\ref{tab:bootstrap} reports, for each eigenvalue rank, the empirical p-value $p_k = \Pr(|\lambda_k^{\text{boot}}| \ge |\lambda_k^{\text{obs}}|)$. None reach conventional significance. We do not correct these ten individual $p_k$ for multiple comparisons; since the smallest of them is $p=0.191$, far above any conventional threshold, a correction would only push the values higher and cannot change the conclusion. Three joint tests corroborate: the maximum non-Perron modulus test ($p=0.212$), a trace test on $\sum_k|\lambda_k|^2$ ($p=0.590$), and a complex-eigenvalue-count test ($p=0.952$, observed 3 pairs vs.\ bootstrap mean 3.6 pairs). Figure~\ref{fig:bootstrap} shows the bootstrap null densities for the six largest-modulus eigenvalues against the observed values.
+\clearpage
+\section{Tests and Power}
+\label{sec:tests}
+
+\subsection{Pre-specified test family}
+
+We test the null of no first-order memory with three statistics, specified before looking at the results. The primary test is the $\chi^2$ test of independence between $S_t$ and $S_{t+1}$ on the $11 \times 11$ table of transition counts \cite{andersongoodman1957}, which is the direct test of a memoryless (order-0) chain against an order-1 chain. Only 15\% of its expected cell counts fall below 5, so its asymptotic distribution is a reasonable guide. The two secondary tests use the spectrum of $\tilde P$. The largest non-Perron modulus $|\lambda_1|$ responds to a single dominant mode of persistence or rotation, and the trace statistic, the sum of the squared non-Perron moduli, accumulates many small modes. Appendix~\ref{app:defs} defines all three statistics and the permutation $p$-value. Both are judged against the permutation null.
+
+\subsection{Power}
+\label{sec:power}
+
+A null result only carries information if the tests could have found a signal. We measure power by planting known structure in simulated chains with the same length and stationary distribution as the data. Each planted chain mixes the memoryless chain with a structured matrix $W$, putting weight $a$ on $W$ (Appendix~\ref{app:defs}), where $W$ is the identity (every sector tends to stay the laggard), an 11-cycle permutation (the laggard rotates through the sectors in a fixed order), or a matrix that adds persistence to a single sector, Energy or Industrials. For each signal size we simulate 300 sequences of 1{,}643 transitions and apply the three tests with critical values from 2{,}000 sequences without memory.
 
 \begin{table}[htbp]\centering
-\caption{Permutation bootstrap (5{,}000 reps): observed vs.\ null eigenvalue moduli.}
-\label{tab:bootstrap}
-\begin{tabular}{lccccc}
+\caption{Minimum detectable $|\lambda_1|$ of the planted chain at 80\% power, by test and type of signal. The most powerful test for each signal is in bold.}
+\label{tab:power}
+\begin{tabular}{lccc}
 \toprule
-Rank & $|\lambda|_{\text{obs}}$ & Mean$_{\text{boot}}$ & SD$_{\text{boot}}$ & $p$-value & Signal? \\
+Planted signal & $\chi^2$ & Max modulus & Trace \\
 \midrule
-$\lambda_1$ & 0.0844 & 0.0759 & 0.0118 & 0.212 & no \\
-$\lambda_2$ & 0.0688 & 0.0686 & 0.0095 & 0.462 & no \\
-$\lambda_3$ & 0.0688 & 0.0618 & 0.0083 & 0.191 & no \\
-$\lambda_4$ & 0.0525 & 0.0567 & 0.0079 & 0.692 & no \\
-$\lambda_5$ & 0.0525 & 0.0514 & 0.0078 & 0.440 & no \\
-$\lambda_6$ & 0.0380 & 0.0459 & 0.0080 & 0.836 & no \\
-$\lambda_7$ & 0.0276 & 0.0401 & 0.0083 & 0.933 & no \\
-$\lambda_8$ & 0.0276 & 0.0333 & 0.0088 & 0.736 & no \\
-$\lambda_9$ & 0.0105 & 0.0251 & 0.0094 & 0.941 & no \\
-$\lambda_{10}$ & 0.0015 & 0.0147 & 0.0096 & 0.942 & no \\
+Uniform persistence & 0.053 & 0.050 & \textbf{0.044} \\
+Rotation (11-cycle) & \textbf{0.048} & 0.086 & 0.057 \\
+Industrials only & 0.182 & \textbf{0.151} & 0.183 \\
+Energy only & 0.159 & \textbf{0.114} & 0.141 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+Figure~\ref{fig:power} and Table~\ref{tab:power} show that each test is most powerful against a different alternative. The $\chi^2$ test detects rotation earliest, the trace statistic detects broad persistence earliest, and the largest modulus detects persistence confined to one sector earliest. This is why we keep all three rather than rely on one. Against broad persistence or rotation, all three reach 80\% power by $|\lambda| \approx 0.05$ to $0.09$. Persistence confined to one sector is much harder to detect and needs $|\lambda| \approx 0.11$ to $0.15$ with the best test.
+
 \begin{figure}[htbp]\centering
-\includegraphics[width=0.95\textwidth]{figures/bootstrap_eigenvalues.png}
-\caption{Permutation-bootstrap null distributions (5{,}000 reps) of $|\lambda_1|$ through $|\lambda_6|$, with observed values (dashed red) and 95\% critical values (dotted green).}
-\label{fig:bootstrap}
+\includegraphics[width=\textwidth]{figures/power.pdf}
+\caption{Detection rate of the three tests against planted signals of increasing size, 300 simulations per point. The horizontal line marks 80\% power.}
+\label{fig:power}
 \end{figure}
 
-We conclude that the empirical spectral gap, though real in-sample, is statistically indistinguishable from what an $11\times11$ random stochastic matrix would generate by construction alone. The daily laggard sequence contains no detectable persistence or cyclicality beyond what the row-stochasticity constraint itself induces.
+\subsection{Results}
+
+None of the three tests rejects the null. The $\chi^2$ statistic is 104.6 on 100 degrees of freedom ($p = 0.357$; the likelihood-ratio version gives $G^2 = 107.9$, $p = 0.277$). The largest non-Perron modulus, 0.0844, has a permutation $p$-value of 0.210 against a 95\% critical value of 0.097, and the trace statistic has $p = 0.581$. The number of complex pairs, three, is also typical of the null (mean 3.5, $p = 0.952$). Figure~\ref{fig:perm} compares the six largest moduli with their permutation distributions; per-rank $p$-values for all ten are in Appendix~\ref{app:matrices}.
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/permutation_null.pdf}
+\caption{Permutation null (5{,}000 shuffles) of the six largest non-Perron moduli, with the observed value (solid) and the 95\% critical value (dashed).}
+\label{fig:perm}
+\end{figure}
+
+Taken with the power results, these tests rule out broad persistence or rotation of the size the tests can detect. A true broad signal as large as the observed $|\lambda_1| = 0.084$ would be detected by the most powerful test in nearly every simulation. They cannot rule out weaker signals, or persistence confined to one sector below $|\lambda| \approx 0.11$.
 
 \clearpage
 \section{Robustness}
 \label{sec:robust}
 
+The absence of first-order memory holds under every specification we tried. The only dependence we find is at lags of two days or more, and it is small.
+
 \subsection{Markov order}
+\label{sec:order}
 
-We test order-1 against order-2 dependence via a likelihood-ratio test, comparing $\log \hat L$ under $\hat P_{ij}$ against a second-order model $\hat P_{ijk}$ estimated on 120 of 121 observed $(i,j)$ state pairs. The LR statistic is $2(\ell_1-\ell_0) = 1584.9$ against $df=1090$ ($\ell_0=-3846.8$, $\ell_1=-3054.4$), rejecting order-1 at $p\approx0$. However, AIC and BIC both favor the parsimonious order-1 model (order-1: 110 parameters, AIC $=7913.6$, BIC $=8508.1$; order-2: 1{,}200 parameters, AIC $=8508.7$, BIC $=14{,}993.1$). These results are reconcilable: the LR test is anti-conservative here, because the order-2 alternative has roughly 11$\times$ as many free parameters as observations warrant (Section~\ref{sec:sparsity}), so it will nearly always show a nominal likelihood improvement even under the true order-1 null. The penalized criteria are the appropriate adjudicator, and we retain the order-1 specification used throughout the paper.
+We compare chains of order 0 (memoryless), 1 and 2 on the same sample, starting from the third day so that all three models predict the same transitions. Both information criteria select order 0: the Akaike criterion is 7{,}412.5, 7{,}505.0 and 8{,}508.7 for orders 0, 1 and 2, and the Bayesian criterion is 7{,}466.6, 8{,}099.4 and 14{,}993.1.
 
-\subsection{Time-homogeneity}
+The likelihood-ratio test of order 2 against order 1 needs more care. Its statistic is 1{,}176.2 on 1{,}090 degrees of freedom, which gives a nominal $p$-value of 0.035, but most of the 1{,}331 cells of the order-2 table are sparse, so the $\chi^2$ approximation is unreliable. We therefore calibrate the statistic by parametric bootstrap, simulating 2{,}000 order-1 chains of the same length. The answer depends on which matrix the chains are simulated from. From $\hat P$ the null mean is 1{,}060 and $p = 0.004$; from $\tilde P$ the null mean is 1{,}110 and $p = 0.058$. The difference arises because $\hat P$ contains a structural zero and sharper rows, which lower the null distribution. A permutation that shuffles the sequence only within 21-day blocks gives $p = 0.134$. Taken together, these results are borderline evidence of second-order dependence. Section~\ref{sec:lags} traces it to dependence at a lag of two days, and the order test on three macro states in Section~\ref{sec:spec}, where the $\chi^2$ approximation is valid, gives $p = 0.045$ for the main grouping and 0.263 for the alternative.
 
-We split the sample into crisis sub-periods (COVID-19, February--April 2020; the 2022 rate-hike/Ukraine period, January--June 2022; the March 2023 regional-banking stress episode; 209 of 1{,}644 days, 12.7\%) and the remaining calm days, estimate separate smoothed chains $P_{\text{calm}}, P_{\text{crisis}}$, and compare their joint log-likelihood against a single pooled chain via a likelihood-ratio test. The statistic is $2(\ell_{\text{calm}}+\ell_{\text{crisis}} - \ell_{\text{pooled}}) = 68.1$ against $df=110$, giving $p=0.999$: we fail to reject time-homogeneity. The largest calm-vs-crisis differences (e.g.\ Real Estate$\to$Consumer Discretionary, $+0.110$; Communication$\to$Real Estate, $-0.108$) are individually notable but do not survive as a joint departure from homogeneity. Had homogeneity been rejected, the natural extension would be a regime-switching (hidden Markov) model with a latent volatility state modulating $P$; our result does not require it.
+\subsection{Stability over time}
+\label{sec:stability}
 
-\subsection{Leader-chain robustness check}
-\label{sec:leader}
+We test whether the transition law differs between turbulent and calm periods with a likelihood ratio that compares separate maximum-likelihood estimates for the two regimes with a pooled estimate. The $p$-value comes from 2{,}000 circular shifts of the regime indicator, which keep the length and clustering of each regime but break its link to the laggard sequence. For the crisis windows of February to April 2020, January to June 2022 and March 2023 (209 transitions), $p = 0.75$. For a split chosen by the data, the top third of days by the lagged 21-day realised volatility of an equal-weighted sector portfolio (541 transitions), $p = 0.87$. We also repeat the largest-modulus test in 67 rolling windows of 252 days, advanced by 21 days. None of the windows rejects at the 5\% level, and the smallest $p$-value is 0.097, for the window ending on 2023-02-21.
 
-The results above are specific to the \emph{laggard} state definition, $S_t=\arg\min_i r_{i,t}$ (Section~\ref{sec:state}). As a further robustness check, we repeat the full pipeline, transition-matrix estimation, Laplace smoothing, spectral decomposition, circular-law benchmark, and permutation bootstrap, on the complementary \emph{leader} chain, $S_t=\arg\max_i r_{i,t}$, over the same common period (2018-06-20 to 2024-12-31, 1{,}643 transitions).
+These tests have limited power. A 252-day window has about 23 transitions per row, so its noise radius from Eq.~\eqref{eq:radius} is close to 0.20, and the 95\% critical values of the windows range from 0.17 to 0.20. They can rule out a large local signal but not a weak one. The results show no instability large enough to detect, which is not the same as showing that the transition law is constant.
 
-The leader chain's stationary distribution mirrors the laggard chain's in an interesting way: Energy is again the most frequent state ($\pi^{\text{leader}}_{\text{Energy}}=0.209$, recurring every 4.8 days), and Industrials again the rarest ($\pi^{\text{leader}}_{\text{Industrials}}=0.034$, recurring every 29.9 days). Energy is evidently the most cross-sectionally volatile sector in both directions, not directionally biased, and Industrials the most consistently mid-pack.
+\subsection{Specification checks}
+\label{sec:spec}
 
-Spectrally, the leader chain's second-largest eigenvalue modulus is $|\lambda_1^{\text{leader}}|=0.0772$, giving spectral gap $\gamma^{\text{leader}}=0.9228$, close to the laggard chain's $\gamma=0.9156$, and well inside the $n=11$ circular-law disk of radius $1/\sqrt{11}\approx0.3015$. Table~\ref{tab:leader_bootstrap} reports the 5{,}000-replication permutation bootstrap on the leader-chain spectrum: no individual eigenvalue reaches conventional significance (the smallest is $p=0.098$, for $\lambda_{10}^{\text{leader}}$), and the three joint tests agree (max-modulus $p=0.416$; trace $p=0.243$; complex-eigenvalue-count $p=0.531$, observed 4 pairs against a bootstrap mean of 3.5).
+Table~\ref{tab:spec} repeats the primary and largest-modulus tests under alternative choices of estimator, state and sampling. Neither test rejects in any row.
 
 \begin{table}[htbp]\centering
-\caption{Leader-chain permutation bootstrap (5{,}000 reps): observed vs.\ null eigenvalue moduli.}
-\label{tab:leader_bootstrap}
-\begin{tabular}{lccccc}
+\caption{Memory tests under alternative specifications. The $\chi^2$ test uses raw counts and so does not depend on the estimator; the largest-modulus $p$-value is from a permutation null with the same estimator as the data.}
+\label{tab:spec}
+\small
+\begin{tabular}{llccc}
 \toprule
-Rank & $|\lambda|_{\text{obs}}$ & Mean$_{\text{boot}}$ & SD$_{\text{boot}}$ & $p$-value & Signal? \\
+ & Variant & Transitions & $\chi^2$ $p$ & Largest modulus $p$ \\
 \midrule
-$\lambda_1$ & 0.0772 & 0.0763 & 0.0120 & 0.416 & no \\
-$\lambda_2$ & 0.0772 & 0.0691 & 0.0097 & 0.190 & no \\
-$\lambda_3$ & 0.0722 & 0.0622 & 0.0084 & 0.120 & no \\
-$\lambda_4$ & 0.0547 & 0.0569 & 0.0081 & 0.602 & no \\
-$\lambda_5$ & 0.0547 & 0.0514 & 0.0080 & 0.347 & no \\
-$\lambda_6$ & 0.0489 & 0.0461 & 0.0081 & 0.353 & no \\
-$\lambda_7$ & 0.0489 & 0.0400 & 0.0085 & 0.149 & no \\
-$\lambda_8$ & 0.0296 & 0.0333 & 0.0088 & 0.660 & no \\
-$\lambda_9$ & 0.0296 & 0.0250 & 0.0095 & 0.317 & no \\
-$\lambda_{10}$ & 0.0281 & 0.0146 & 0.0095 & 0.098 & no \\
+ & Main specification & 1{,}643 & 0.357 & 0.210 \\
+\midrule
+\multirow{3}{*}{Estimator} & $\alpha = 0$ (raw MLE) & 1{,}643 & -- & 0.207 \\
+ & $\alpha = 0.5$ & 1{,}643 & -- & 0.218 \\
+ & Pseudo-counts in proportion to $\pi$ & 1{,}643 & -- & 0.220 \\
+\midrule
+\multirow{5}{*}{State} & Tie broken the other way & 1{,}643 & 0.324 & 0.232 \\
+ & Leader instead of laggard & 1{,}643 & 0.362 & 0.424 \\
+ & Volatility-standardised laggard & 1{,}583 & 0.978 & 0.533 \\
+ & Three macro states, main grouping & 1{,}643 & 0.164 & 0.054 \\
+ & Three macro states, alternative grouping & 1{,}643 & 0.209 & 0.143 \\
+\midrule
+\multirow{3}{*}{Sampling} & Weekly returns & 341 & 0.645 & 0.521 \\
+ & Consecutive calendar days only & 1{,}284 & 0.479 & 0.421 \\
+ & Excluding monthly option-expiry days & 1{,}491 & 0.332 & 0.426 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The leader chain, like the laggard chain, has no eigenvalue surviving either the circular-law or the permutation-bootstrap test. The absence of detectable spectral signal reported in Section~\ref{sec:rmt} is therefore not an artifact of conditioning on the worst performer specifically: it holds symmetrically for the best performer, consistent with the mechanism argument of Section~\ref{sec:mechanism}, which predicts no serial structure regardless of which tail of the daily cross-section is tracked.
+The state checks address the choice of label. The volatility-standardised laggard divides each return by its own volatility, estimated with an exponentially weighted average of past squared returns (decay 0.94) and known on the previous day, after a 60-day burn-in. This makes the label less a ranking of which sector is most volatile: on the 1{,}584 days left after the 60-day burn-in, Energy's share falls from 0.237 to 0.181, and the ratio of the most to the least frequent laggard falls from 8.5 to 4.4. The macro states collapse the eleven sectors into three groups fixed in advance: Defensive (Consumer Staples, Health Care, Utilities, Real Estate), Growth (Technology, Communication, Consumer Discretionary) and Cyclical (Energy, Materials, Industrials, Financials). The alternative grouping moves Real Estate and Consumer Discretionary into Cyclical. With three states the order-2 model has 18 parameters, no expected cell count falls below 5, and the order-2 test gives $\chi^2 = 21.4$ on 12 degrees of freedom ($p = 0.045$) for the main grouping and $p = 0.263$ for the alternative.
+
+The sampling checks address the calendar. A Friday-to-Monday transition spans three calendar days and a post-holiday transition spans more, so the consecutive-days check keeps only transitions between adjacent calendar days. The option-expiry check drops every transition that starts or ends on the third Friday of a month. The laggard is also unrelated to the day of the week ($\chi^2 = 41.3$ on 40 degrees of freedom, $p = 0.41$), a static check that we list separately because it does not test memory.
+
+\subsection{Dependence at longer lags}
+\label{sec:lags}
+
+A first-order test cannot see dependence that skips a day, so we also test $S_{t-k}$ against $S_t$ for $k = 1,\dots,20$ with the $\chi^2$ statistic and 1{,}000 permutations each. Lag 1 is again unremarkable ($p = 0.354$). Lags 2, 4 and 8 have $p$-values of 0.016, 0.001 and 0.022. Three of twenty below 0.05 is more than the one expected by chance, but after controlling the false discovery rate at 5\% \cite{benjaminihochberg1995} only lag 4 remains. Lag 4 is significant in both halves of the sample ($p = 0.027$ and 0.044), and a permutation within 21-day blocks, which holds fixed any slow drift in the laggard frequencies, gives $p = 0.006$ for lag 4, 0.054 for lag 2 and 0.048 for lag 8. The lag-2 dependence also appears in both macro groupings ($p = 0.018$ and 0.025), while lag 4 appears only in the main grouping ($p = 0.027$ against 0.341).
+
+The dependence is small. Cram\'er's $V$ for lag 4 is 0.095, against 0.078 expected under no dependence, and the excess is 0.012 at lag 2 and 0.002 at lag 1. It also weakens for the volatility-standardised state (lag 4, $p = 0.064$) and is not significant for the leader chain ($p = 0.144$), which suggests that part of it reflects volatility that persists for several days. Section~\ref{sec:oos} asks whether it is large enough to forecast with.
 
 \clearpage
-\section{Mechanism: Why No Signal?}
-\label{sec:mechanism}
+\section{Out-of-Sample Predictability}
+\label{sec:oos}
 
-The mechanical construction of the underlying products offers a ready explanation for the absence of detectable spectral structure, instead of leaving it as an unexplained null result.
+A Markov-1 model and a lag-4 model both forecast tomorrow's laggard significantly worse than a forecast that uses only the laggard's unconditional frequency.
 
-A cap-weighted index tracker requires \emph{no trading} in response to a pure price move: because each constituent's index weight is its market capitalization divided by total index capitalization, a 15\% price decline in one name mechanically reduces its own weight without requiring any rebalancing transaction by the fund. An \emph{equal-weight} fund, by contrast, must periodically buy back down to equal dollar weights: after a 15\% decline, the faller's weight sits below $1/N$, forcing the fund to \emph{buy the faller} --- a mechanical, calendar-driven mean-reversion flow imposed on prices independent of any economic view. Daily-rebalanced \emph{leveraged} products impose the opposite force: to hold constant leverage, a rise in the underlying requires the fund to \emph{increase} dollar exposure, i.e.\ buy the riser, a forced momentum flow.
+\subsection{Design}
 
-These two mechanisms have distinct, testable spectral signatures. Equal-weight-style forced mean reversion should manifest as strong \emph{alternation} in the laggard sequence --- a large real, \emph{negative} sub-dominant eigenvalue (the discrete signature of period-2 oscillation: today's laggard tends not to be tomorrow's). Leveraged-style forced momentum should manifest as elevated diagonal (self-transition) mass in $\hat P$ --- a large real, \emph{positive} sub-dominant eigenvalue close to $\lambda_0=1$ (today's laggard tends to remain tomorrow's). A chain with neither mechanical force acting on it has no structural reason to deviate from the row-stochastic random-matrix baseline of Section~\ref{sec:rmt}.
+From day 504 onward, about two years into the sample, we refit each model on the data up to day $t$ and forecast the distribution of $S_{t+1}$. The benchmark is the frequency forecast, the smoothed frequency of each sector so far, which is the best forecast if the chain has no memory. The competitors are a Markov-1 model (the $\alpha = 1$ row of $S_t$), the same model with its rows shrunk towards the frequency forecast by 11 pseudo-counts, and a lag-4 model (the $\alpha = 1$ row of $S_{t-3}$ in the lag-4 count table). We score each forecast by the log of the probability given to the sector that did lag, and compare models with the Diebold--Mariano test \cite{dieboldmariano1995} on the daily difference in log scores, using a Newey--West variance with five lags \cite{neweywest1987}. We report three designs: an expanding window from day 504 (1{,}139 forecasts, 2020-06-23 to 2024-12-31), a rolling window of 504 days, and an expanding window from day 252 (1{,}391 forecasts).
 
-The SPDR Select Sector ETFs used in this paper are cap-weighted, not equal-weight or leveraged. There is accordingly no mechanical rebalancing flow embedded in the product structure that would push the laggard-transition spectrum away from its random-matrix null. The finding of Section~\ref{sec:rmt} --- a real but statistically insignificant spectral gap, with no complex-eigenvalue signal surviving the bootstrap --- is exactly the outcome this mechanism predicts, not a surprising negative result.
+\subsection{Results}
+
+Table~\ref{tab:oos} shows that every model with memory loses to the frequency forecast, in every design, with $t$-statistics between $-2.35$ and $-6.61$. For reference, a uniform guess scores $\log(1/11) = -2.398$, so the frequency forecast gains about 0.14 nats a day by knowing that Energy lags most often, and the memory models give part of that back. The hit rates are close, and the Brier score \cite{brier1950} favours the frequency forecast. In the first design the frequency forecast picks the right sector on 23.4\% of days, the same as always predicting Energy, against 23.5\% for Markov-1 and 22.4\% for lag-4, and its Brier score is lower (0.880 against 0.886 and 0.884).
+
+\begin{table}[htbp]\centering
+\caption{Out-of-sample log scores. The Frequency column is the mean daily log score of the frequency forecast; the other columns give each model's mean difference from it, with the Diebold--Mariano $t$-statistic in parentheses. Negative values mean the model forecasts worse.}
+\label{tab:oos}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+Design & Forecasts & Frequency & Markov-1 & Markov-1, shrunk & Lag-4 \\
+\midrule
+Expanding, from day 504 & 1{,}139 & $-2.262$ & $-0.035$ $(-3.81)$ & $-0.040$ $(-4.05)$ & $-0.023$ $(-2.35)$ \\
+Rolling, 504 days & 1{,}139 & $-2.260$ & $-0.061$ $(-5.82)$ & $-0.079$ $(-6.61)$ & $-0.036$ $(-3.11)$ \\
+Expanding, from day 252 & 1{,}391 & $-2.250$ & $-0.046$ $(-5.28)$ & $-0.048$ $(-5.14)$ & $-0.035$ $(-3.75)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:oos} shows that the loss is not confined to a few days. The Markov-1 model falls behind in several separate stretches across the period, while the lag-4 model loses mainly in late 2020 and in 2024. By the end of 2024 the Markov-1 model is 40.1 nats behind the frequency forecast and the lag-4 model 25.8 nats behind. Shrinking the Markov-1 rows towards the frequency forecast does not help at first: with 11 pseudo-counts the mean difference is $-0.040$, slightly worse than $-0.035$ without shrinkage. With 55, 220 and 1{,}000 pseudo-counts it is $-0.017$, $-0.004$ and $-0.0006$ (Table~\ref{tab:shrink}), so the loss shrinks only as the model approaches the frequency forecast, and it never turns positive. The macro states give the same answer, with lag-1, lag-2 and lag-4 models all within 0.004 nats a day of the frequency forecast ($|t| \le 1.26$; Table~\ref{tab:macro}).
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\textwidth]{figures/oos_log_score.pdf}
+\caption{Cumulative out-of-sample log-score difference of the Markov-1 and lag-4 models relative to the frequency forecast, expanding window from day 504, 2020-06-23 to 2024-12-31.}
+\label{fig:oos}
+\end{figure}
+
+The lag dependence of Section~\ref{sec:lags} is too small to improve forecasts in these models. Estimating the 110 transition probabilities of a lag-4 model costs more accuracy than the dependence adds.
 
 \clearpage
 \section{Discussion and Limitations}
+\label{sec:discussion}
 
-Reducing an 11-dimensional daily return vector to a single ``worst performer'' label is a coarse summary, and real information is discarded in the collapse; a richer state (e.g.\ joint quintile ranks, or continuous factor loadings) could in principle carry more structure, at the cost of the free-parameter blowup discussed in Section~\ref{sec:sparsity}. The unbalanced panel (Communication Services and Real Estate ETFs launched after 2010) forces a shorter common estimation window (6.5 years) than the full available history; results for those two sectors specifically rest on less data than the rest of the matrix. Finally, the mechanism argument in Section~\ref{sec:mechanism} is specific to the laggard definition and to cap-weighted, non-leveraged products --- it should not be extrapolated to an equal-weight universe, an intraday state definition, or single-stock instead of sector-level aggregation without re-deriving the corresponding spectral prediction.
+\subsection{Why a null result is plausible}
 
-A further limitation concerns sector definitions themselves: both the GICS sector taxonomy and the constituent holdings of each SPDR Select Sector ETF have changed over 2010--2024 (the 2018 creation of the Communication Services sector, which reclassified several large media and internet names out of Technology and Consumer Discretionary, is the most consequential example). Because we treat each ETF ticker as a fixed proxy for its sector throughout, any such reclassification is implicitly absorbed into that sector's return series, not modeled explicitly. We do not address this here, though it could in principle contribute to the apparent regime stability documented in Section~\ref{sec:robust}, since a sector's underlying composition, not just its relative performance, shifts over the sample.
+A null result fits how the funds are built and traded. In a capitalisation-weighted fund, weights move with prices, so a fall in one sector does not force the fund to buy or sell anything the next day. Products whose rules do force trading after a price move, such as daily-rebalanced leveraged funds, are not part of our sample, and we do not test whether their flows reach sector returns. The Select Sector indices do trade mechanically at times. Their capping rules limit the weight of the largest companies and are applied at quarterly rebalances, and at its June 2024 rebalance the technology fund sold roughly \$10 billion of Apple and bought nearly as much Nvidia, according to a Morningstar analyst quoted by Shaw \cite{shaw2024}. S\&P changed the capping method in September 2024 to avoid such swings. These trades fall on a few known dates, however, and move money between companies within one sector, so they would not create day-to-day dependence in which sector lags. A second reason is that the sector funds are liquid and widely traded. A laggard pattern strong enough to forecast with would be easy to trade, and would plausibly not survive for long.
+
+\subsection{The laggard partly ranks volatility}
+
+The laggard is the sector with the lowest return, and a more volatile sector is more likely to have the lowest return, and the highest, on any given day. Energy is the most volatile sector in our sample, with annualised volatility of 33\% against 26\% for Technology, the next highest. It is also both the most frequent laggard ($\pi = 0.226$) and the most frequent leader (stationary probability 0.209 in the leader chain). Standardising returns by their own volatility lowers Energy's share of laggard days from 0.237 to 0.181 on the 1{,}584 days left after the 60-day burn-in and halves the spread between the most and least frequent laggard (Section~\ref{sec:spec}). Part of what the chain measures is therefore which sector moves most, not which sector is out of favour. The memory tests stay null under both labels, so this affects the interpretation of $\pi$ rather than the main result, but it also suggests that some of the lag dependence in Section~\ref{sec:lags} reflects volatility that persists for several days.
+
+\subsection{Limitations}
+
+The state is coarse. It records only which sector had the lowest return, not by how much or in what order the others finished, so a model of return magnitudes or full rankings could find structure that this chain cannot.
+
+The tests have limits on what they can detect. Broad persistence or rotation of $|\lambda| \approx 0.05$ would be detected with 80\% power, but persistence confined to one sector needs $|\lambda| \approx 0.11$ to $0.15$ (Table~\ref{tab:power}), and the stability tests can only detect local signals of about 0.2 (Section~\ref{sec:stability}). A weak signal that is confined to one sector or to a short period could therefore have been missed.
+
+We document the dependence at lags of two to eight days but do not model it. A full order-2 chain on eleven states has 1{,}210 free parameters (1{,}200 for the 120 pairs that occur), more than our sample can estimate, and the three-state version in Section~\ref{sec:spec} gives only borderline evidence. Section~\ref{sec:oos} suggests that modelling it would not help forecasts, but a more parsimonious model could do better than the lag-4 table we tested.
+
+The sectors themselves change over the sample. The September 2018 GICS revision created Communication Services and moved Alphabet and Facebook out of Information Technology \cite{msci2018}, a change the S\&P sector indices adopted on 24 September 2018 \cite{thinkadvisor2018}, and the revision of 17 March 2023 moved Visa and Mastercard from Information Technology to Financials \cite{spdji2023}. Each changes what a sector label refers to, and the stability tests have limited power to detect a resulting shift in the transition law. Large one-off flows, such as the 2024 rebalance of the technology fund, raise a similar concern for shorter stretches of the sample.
+
+Finally, we study the daily horizon, with only a weekly check (Section~\ref{sec:spec}). Industry momentum has been documented at monthly to annual horizons \cite{moskowitzgrinblatt1999}, and our result does not speak to those.
 
 \clearpage
 \section{Conclusion}
+\label{sec:conclusion}
 
-Sector rotation is a Markov chain once the state is defined as a single categorical label (here, the daily laggard sector), not as a pairwise conditional-probability table. Doing so on eleven S\&P 500 sector ETFs over 2010--2024 produces an ergodic chain with a real, computable spectral gap ($\gamma=0.916$) and several complex eigenvalue pairs suggestive of short cyclical rotation. Testing that structure against the null model actually appropriate for a row-stochastic matrix --- the circular law for random Markov matrices, not Marchenko--Pastur --- shows none of it survives: every eigenvalue is statistically consistent with a random $11\times11$ stochastic matrix, under both an asymptotic disk-radius approximation and a 5{,}000-replication permutation bootstrap. The same procedure, applied to a hypothetical chain with a genuinely large complex eigenvalue pair, correctly identifies it as signal, confirming the test has power instead of being too weak to detect real structure. The absence of signal in the real data is instead well explained by mechanism: cap-weighted sector ETFs embed no forced rebalancing flow, mean-reverting or momentum-driven, that would imprint serial structure onto which sector leads or lags from one day to the next.
+We asked whether today's worst-performing S\&P 500 sector tells us which sector will be worst tomorrow. Defining the laggard as a single state per day gives a valid Markov chain, and from 2018 to 2024 that chain shows no first-order memory. A $\chi^2$ test of independence and two spectral tests against the correct noise benchmark all fail to reject, and simulations show that they would have detected broad persistence or rotation of $|\lambda| \approx 0.05$. Out of sample, models that use the previous laggard forecast worse than the laggard's unconditional frequency. There is detectable dependence at lags of two to eight days, but it is small and does not improve forecasts in the models we tested.
+
+The methodological point is that a null result is only informative when the benchmark and the power are right. The Marchenko--Pastur law does not apply to a transition matrix, and the Dirichlet radius is almost four times too wide for an estimated matrix of this size. Against the radius $\sqrt{(n-1)/N}$ and a test family with measured power, the absence of structure in the daily laggard is a finding rather than a failure to look.
 
 \appendix
 \clearpage
-\section{Full Transition and Hitting-Time Matrices}
+\section{Full Matrices and Per-Rank Tests}
 \label{app:matrices}
 
-Sector abbreviations: COMM = Communication, CDIS = Consumer Discretionary, CSTA = Consumer Staples, ENGY = Energy, FINA = Financials, HLTH = Health Care, INDU = Industrials, MATL = Materials, REAL = Real Estate, TECH = Technology, UTIL = Utilities.
+Sector abbreviations: COMM Communication Services, CDIS Consumer Discretionary, CSTA Consumer Staples, ENGY Energy, FINA Financials, HLTH Health Care, INDU Industrials, MATL Materials, REAL Real Estate, TECH Technology, UTIL Utilities. Rows are the laggard on day $t$ and columns the laggard on day $t+1$.
 
-\input{tables_matrices.tex}
+\begin{table}[htbp]\centering
+\caption{Daily transition counts $n_{ij}$, 2018-06-20 to 2024-12-31 (1{,}643 transitions).}
+\label{tab:counts}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrrrrrr}
+\toprule
+From $\backslash$ To & COMM & CDIS & CSTA & ENGY & FINA & HLTH & INDU & MATL & REAL & TECH & UTIL \\
+\midrule
+COMM & 16 & 14 & 2 & 33 & 4 & 8 & 2 & 9 & 18 & 10 & 18 \\
+CDIS & 14 & 13 & 13 & 28 & 5 & 6 & 2 & 5 & 10 & 14 & 10 \\
+CSTA & 9 & 4 & 7 & 22 & 7 & 8 & 2 & 8 & 7 & 7 & 26 \\
+ENGY & 37 & 20 & 32 & 97 & 20 & 21 & 17 & 18 & 42 & 34 & 49 \\
+FINA & 5 & 5 & 8 & 22 & 3 & 5 & 1 & 6 & 10 & 8 & 13 \\
+HLTH & 4 & 9 & 7 & 21 & 7 & 7 & 3 & 5 & 13 & 13 & 20 \\
+INDU & 3 & 3 & 2 & 11 & 4 & 6 & 0 & 2 & 1 & 4 & 9 \\
+MATL & 7 & 7 & 8 & 28 & 7 & 6 & 3 & 3 & 8 & 14 & 7 \\
+REAL & 12 & 12 & 8 & 34 & 11 & 14 & 4 & 15 & 11 & 21 & 25 \\
+TECH & 13 & 16 & 8 & 42 & 5 & 12 & 4 & 8 & 23 & 17 & 19 \\
+UTIL & 14 & 17 & 12 & 49 & 13 & 16 & 7 & 18 & 24 & 26 & 27 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]\centering
+\caption{Laplace-smoothed transition matrix $\tilde P$ ($\alpha = 1$).}
+\label{tab:ptilde}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccccccccccc}
+\toprule
+From $\backslash$ To & COMM & CDIS & CSTA & ENGY & FINA & HLTH & INDU & MATL & REAL & TECH & UTIL \\
+\midrule
+COMM & 0.1172 & 0.1034 & 0.0207 & 0.2345 & 0.0345 & 0.0621 & 0.0207 & 0.0690 & 0.1310 & 0.0759 & 0.1310 \\
+CDIS & 0.1145 & 0.1069 & 0.1069 & 0.2214 & 0.0458 & 0.0534 & 0.0229 & 0.0458 & 0.0840 & 0.1145 & 0.0840 \\
+CSTA & 0.0847 & 0.0424 & 0.0678 & 0.1949 & 0.0678 & 0.0763 & 0.0254 & 0.0763 & 0.0678 & 0.0678 & 0.2288 \\
+ENGY & 0.0955 & 0.0528 & 0.0829 & 0.2462 & 0.0528 & 0.0553 & 0.0452 & 0.0477 & 0.1080 & 0.0879 & 0.1256 \\
+FINA & 0.0619 & 0.0619 & 0.0928 & 0.2371 & 0.0412 & 0.0619 & 0.0206 & 0.0722 & 0.1134 & 0.0928 & 0.1443 \\
+HLTH & 0.0417 & 0.0833 & 0.0667 & 0.1833 & 0.0667 & 0.0667 & 0.0333 & 0.0500 & 0.1167 & 0.1167 & 0.1750 \\
+INDU & 0.0714 & 0.0714 & 0.0536 & 0.2143 & 0.0893 & 0.1250 & 0.0179 & 0.0536 & 0.0357 & 0.0893 & 0.1786 \\
+MATL & 0.0734 & 0.0734 & 0.0826 & 0.2661 & 0.0734 & 0.0642 & 0.0367 & 0.0367 & 0.0826 & 0.1376 & 0.0734 \\
+REAL & 0.0730 & 0.0730 & 0.0506 & 0.1966 & 0.0674 & 0.0843 & 0.0281 & 0.0899 & 0.0674 & 0.1236 & 0.1461 \\
+TECH & 0.0787 & 0.0955 & 0.0506 & 0.2416 & 0.0337 & 0.0730 & 0.0281 & 0.0506 & 0.1348 & 0.1011 & 0.1124 \\
+UTIL & 0.0641 & 0.0769 & 0.0556 & 0.2137 & 0.0598 & 0.0726 & 0.0342 & 0.0812 & 0.1068 & 0.1154 & 0.1197 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]\centering
+\caption{Expected hitting times $H_{ij}$ (trading days) under $\tilde P$.}
+\label{tab:hitting}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccccccccc}
+\toprule
+From $\backslash$ To & COMM & CDIS & CSTA & ENGY & FINA & HLTH & INDU & MATL & REAL & TECH & UTIL \\
+\midrule
+COMM & -- & 13.5 & 15.7 & 4.5 & 18.4 & 14.8 & 31.4 & 15.8 & 9.3 & 10.1 & 7.5 \\
+CDIS & 12.2 & -- & 14.4 & 4.5 & 18.2 & 14.9 & 31.4 & 16.2 & 9.8 & 9.8 & 7.8 \\
+CSTA & 12.6 & 14.4 & -- & 4.7 & 17.7 & 14.6 & 31.3 & 15.6 & 9.9 & 10.2 & 6.7 \\
+ENGY & 12.5 & 14.2 & 14.7 & -- & 18.0 & 14.9 & 30.7 & 16.1 & 9.5 & 10.0 & 7.5 \\
+FINA & 12.9 & 14.1 & 14.6 & 4.5 & -- & 14.8 & 31.4 & 15.7 & 9.5 & 9.9 & 7.3 \\
+HLTH & 13.2 & 13.8 & 14.9 & 4.7 & 17.7 & -- & 31.0 & 16.1 & 9.5 & 9.7 & 7.1 \\
+INDU & 12.8 & 14.0 & 15.1 & 4.6 & 17.4 & 13.9 & -- & 16.0 & 10.2 & 10.0 & 7.1 \\
+MATL & 12.7 & 13.9 & 14.7 & 4.3 & 17.7 & 14.8 & 30.9 & -- & 9.8 & 9.5 & 7.8 \\
+REAL & 12.8 & 13.9 & 15.2 & 4.6 & 17.7 & 14.5 & 31.2 & 15.5 & -- & 9.6 & 7.3 \\
+TECH & 12.7 & 13.6 & 15.2 & 4.5 & 18.4 & 14.6 & 31.2 & 16.1 & 9.3 & -- & 7.6 \\
+UTIL & 12.9 & 13.9 & 15.1 & 4.6 & 17.9 & 14.6 & 31.0 & 15.6 & 9.5 & 9.7 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]\centering
+\caption{Per-rank permutation test of the non-Perron moduli of $\tilde P$ (5{,}000 shuffles). Ranks are compared with the same rank under the null.}
+\label{tab:perrank}
+\begin{tabular}{lcccc}
+\toprule
+Rank & Observed $|\lambda|$ & Null mean & Null s.d. & $p$ \\
+\midrule
+$\lambda_1$ & 0.0844 & 0.0759 & 0.0118 & 0.210 \\
+$\lambda_2$ & 0.0688 & 0.0687 & 0.0095 & 0.469 \\
+$\lambda_3$ & 0.0688 & 0.0617 & 0.0083 & 0.189 \\
+$\lambda_4$ & 0.0525 & 0.0566 & 0.0081 & 0.694 \\
+$\lambda_5$ & 0.0525 & 0.0512 & 0.0078 & 0.433 \\
+$\lambda_6$ & 0.0380 & 0.0459 & 0.0080 & 0.839 \\
+$\lambda_7$ & 0.0276 & 0.0400 & 0.0083 & 0.929 \\
+$\lambda_8$ & 0.0276 & 0.0332 & 0.0088 & 0.734 \\
+$\lambda_9$ & 0.0105 & 0.0249 & 0.0095 & 0.935 \\
+$\lambda_{10}$ & 0.0015 & 0.0145 & 0.0095 & 0.949 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \clearpage
-\section{Worked Toy Example}
+\section{Worked Three-State Example}
 \label{app:toy}
 
-This appendix works a small, hand-checkable three-state universe, Technology (T), Financials (F), Energy (E), through the estimation, stationarity, and spectral machinery used in the main text. The source problem set this paper extends posed each concept with its own convenient illustrative matrix, so the three parts below use three different (though comparably sized) transition matrices over the same three states rather than a single matrix carried through all three steps; each part is otherwise self-contained and mirrors the corresponding empirical calculation in the main text.
+This example uses three states, Technology (T), Financials (F) and Energy (E), to show the estimators of Section~\ref{sec:estimation} and the quantities of Section~\ref{sec:chain} on numbers small enough to check by hand. It illustrates the calculations only and plays no part in the tests.
 
-\subsection{Transition matrix estimation}
+\paragraph{Estimation.} Suppose the laggard over 13 periods is T T T E T F T F E F F T F. The 12 transitions give the counts below, in the order $(T, F, E)$:
+\begin{equation*}
+(n_{ij}) = \begin{pmatrix} 2 & 3 & 1 \\ 2 & 1 & 1 \\ 1 & 1 & 0 \end{pmatrix}, \qquad
+\hat P = \begin{pmatrix} 0.333 & 0.500 & 0.167 \\ 0.500 & 0.250 & 0.250 \\ 0.500 & 0.500 & 0 \end{pmatrix}.
+\end{equation*}
+Energy is never followed by Energy, so $\hat P_{EE} = 0$. With two transitions out of Energy this zero is a small-sample artefact rather than evidence that the transition is impossible. Laplace smoothing with $\alpha = 1$ replaces the Energy row by $(1+1,\ 1+1,\ 0+1)/(2+3) = (0.4,\ 0.4,\ 0.2)$.
 
-Using the 13-period laggard sequence
-\begin{equation}
-T,\,T,\,T,\,E,\,T,\,F,\,T,\,F,\,E,\,F,\,F,\,T,\,F,
-\end{equation}
-we tabulate the 12 observed transitions into the count matrix $n_{ij}$ (rows = from, columns = to, order T, F, E):
-\begin{equation}
-n = \begin{pmatrix} 2 & 3 & 1 \\ 2 & 1 & 1 \\ 1 & 1 & 0 \end{pmatrix}, \qquad n_{T\cdot}=6,\ \ n_{F\cdot}=4,\ \ n_{E\cdot}=2.
-\end{equation}
-The maximum-likelihood transition matrix $\hat P_{ij} = n_{ij}/n_{i\cdot}$ is
-\begin{equation}
-\hat P = \begin{pmatrix} 0.333 & 0.500 & 0.167 \\ 0.500 & 0.250 & 0.250 \\ 0.500 & 0.500 & 0.000 \end{pmatrix},
-\end{equation}
-with each row summing to 1 by construction. The entry $\hat P_{EE}=0$ (Energy never remained the laggard two weeks running) is a sampling artifact of a 13-observation sample, not evidence that the transition is structurally impossible: with only 2 departures from state $E$, a single additional week of data could easily produce $E\to E$.
+\paragraph{Stationary distribution.} For the illustrative matrix
+\begin{equation*}
+P = \begin{pmatrix} 0.50 & 0.50 & 0 \\ 0.25 & 0.50 & 0.25 \\ 0 & 0.50 & 0.50 \end{pmatrix},
+\end{equation*}
+solving $\pi P = \pi$ with $\sum_i \pi_i = 1$ gives $\pi = (0.25,\ 0.50,\ 0.25)$, so the mean recurrence times are $(4,\ 2,\ 4)$ periods: Financials is the laggard twice as often as Technology or Energy.
 
-Applying Laplace smoothing ($\alpha=1$) to the Energy row ($n_{E\cdot}=2$, $n=3$ states) gives
-\begin{equation}
-\tilde P_{E,\cdot} = \left(\frac{1+1}{2+3},\ \frac{1+1}{2+3},\ \frac{0+1}{2+3}\right) = (0.400,\ 0.400,\ 0.200)
-\end{equation}
-in $(T,F,E)$ order, replacing the zero with a small positive probability so that the resulting chain can be irreducible (Section~\ref{sec:sparsity}).
+\paragraph{Complex eigenvalues and rotation.} The chain $P = 0.3\,\mathbf 1\mathbf 1^\top/3 + 0.7\,\Pi_3$, where $\Pi_3$ is the 3-cycle $T \to F \to E \to T$, has rows $(0.1, 0.8, 0.1)$, $(0.1, 0.1, 0.8)$ and $(0.8, 0.1, 0.1)$. Its non-Perron eigenvalues are $-0.35 \pm 0.606i$, with modulus 0.70 and argument $\pm 120^\circ$. The argument gives a cycle of $360/120 = 3$ periods, matching the 3-cycle, and the modulus gives the damping: the spectral gap is 0.30 and the relaxation time $1/0.30 = 3.3$ periods. This is the kind of structure that a rotation would leave in the spectrum. A modulus of 0.70 is far above anything in Table~\ref{tab:eig}, but a three-state toy chain says nothing about the power of our tests on the real sample; Section~\ref{sec:power} measures that directly.
 
-\subsection{Stationary distribution and recurrence}
+\clearpage
+\section{Definitions, Estimators and Test Statistics}
+\label{app:defs}
 
-For the $3\times3$ matrix over $(T,F,E)$
+\begin{definition}[Row-stochastic matrix]
+\label{def:stoch}
+An $n \times n$ matrix $P$ is a (row-)stochastic transition matrix if and only if
 \begin{equation}
-P = \begin{pmatrix} 0.50 & 0.50 & 0.00 \\ 0.25 & 0.50 & 0.25 \\ 0.00 & 0.50 & 0.50 \end{pmatrix},
+\text{(i)}\quad P_{ij} \ge 0 \ \ \forall i,j, \qquad\qquad \text{(ii)}\quad \sum_{j=1}^n P_{ij} = 1 \ \ \forall i.
 \end{equation}
-solving $\pi P = \pi$ with $\sum_i \pi_i=1$ gives $\pi_T = \pi_E = \tfrac12 \pi_F$ and hence
-\begin{equation}
-\pi = (\pi_T,\pi_F,\pi_E) = (0.25,\ 0.50,\ 0.25).
-\end{equation}
-By Kac's lemma, $\mathbb E[T_{ii}]=1/\pi_i$ \cite{kemenysnell1976}, so the mean recurrence times are $(1/\pi_T, 1/\pi_F, 1/\pi_E) = (4,\ 2,\ 4)$ periods: Financials is the laggard most often in steady state and recurs to that role fastest, every 2 periods on average.
+\end{definition}
 
-\subsection{Spectral gap and cyclical structure}
+\paragraph{Estimators.} Let $n_{ij}$ be the number of days on which the laggard moves from sector $i$ to sector $j$, $n_{i\cdot} = \sum_j n_{ij}$ the number of transitions out of $i$, and $N = \sum_i n_{i\cdot}$. Conditional on the first state, the likelihood of the observed sequence is $\prod_{i,j} P_{ij}^{n_{ij}}$, which is maximised row by row at
+\begin{equation}
+\hat P_{ij} = \frac{n_{ij}}{n_{i\cdot}}.
+\end{equation}
+The Laplace-smoothed estimator adds a pseudo-count $\alpha$ to every cell,
+\begin{equation}
+\tilde P_{ij} = \frac{n_{ij} + \alpha}{n_{i\cdot} + \alpha n}, \qquad \alpha = 1 \text{ in the main specification.}
+\end{equation}
+The variant with pseudo-counts in proportion to the stationary distribution replaces $\alpha$ in the numerator by $\alpha n \hat\pi_j$, where $\hat\pi$ is the vector of raw laggard frequencies.
 
-Consider a different, approximately cyclic estimated $3\times3$ chain with eigenvalues $\lambda_1=1$, $\lambda_{2,3} = -0.35 \pm 0.606i$. The modulus is
-\begin{equation}
-|\lambda_2| = \sqrt{0.35^2 + 0.606^2} = \sqrt{0.4897} \approx 0.700,
-\end{equation}
-giving spectral gap $g = 1-|\lambda_2| \approx 0.300$ and relaxation time $\approx 1/g \approx 3.3$ periods --- a slowly-decaying, persistent pattern. The eigenvalue's argument is
-\begin{equation}
-\theta = \arg(\lambda_2) = \pi - \arctan\!\left(\frac{0.606}{0.35}\right) \approx \frac{2\pi}{3} \ \text{rad} = 120^\circ,
-\end{equation}
-which is exact to four significant figures: $0.6998\cdot(\cos 120^\circ, \sin 120^\circ) = (-0.350, 0.606)$. The implied rotation period is
-\begin{equation}
-\frac{2\pi}{\theta} = 3.00 \ \text{periods},
-\end{equation}
-an exact 3-cycle (e.g.\ $T\to F\to E\to T$). A complex eigenvalue pair is the signature of a \emph{directional}, multi-state cycle; it is structurally invisible to a symmetric object like a correlation matrix, because a symmetric matrix's eigenvalues are always real --- correlation captures co-movement magnitude but cannot encode that $A$ tends to lead $B$ rather than the reverse. Only an asymmetric, directional transition matrix can carry that information. This example is revisited in Section~\ref{sec:rmt} to confirm the random-matrix test correctly flags it as signal, in contrast with the empirical (no-signal) result on the real 11-sector chain.
+\begin{proposition}[Perron--Frobenius; see \cite{seneta2006,norris1998}]
+\label{prop:pf}
+If $P$ is irreducible and aperiodic, it has a unique stationary distribution $\pi$ with $\pi P = \pi$, $\sum_i \pi_i = 1$ and $\pi_i > 0$ for all $i$, and $P^t \to \mathbf 1\pi$ as $t \to \infty$ from every initial distribution. The mean recurrence time of state $i$ is $\mu_i = 1/\pi_i$, the spectral gap is $\gamma = 1 - |\lambda_1|$, and the relaxation time is $1/\gamma$.
+\end{proposition}
 
-\begin{thebibliography}{9}
+\paragraph{Test statistics.} The $\chi^2$ statistic compares the transition counts with the counts expected if $S_{t+1}$ is independent of $S_t$,
+\begin{equation}
+X^2 = \sum_{i,j} \frac{(n_{ij} - e_{ij})^2}{e_{ij}}, \qquad e_{ij} = \frac{n_{i\cdot}\, n_{\cdot j}}{N},
+\end{equation}
+with $(n-1)^2 = 100$ degrees of freedom. With $\lambda_1, \dots, \lambda_{n-1}$ the non-Perron eigenvalues of $\tilde P$ ordered by modulus, the two spectral statistics are
+\begin{equation}
+T_{\max} = |\lambda_1|, \qquad T_{\mathrm{tr}} = \sum_{k=1}^{n-1} |\lambda_k|^2.
+\end{equation}
+For a statistic $T$ with observed value $T_{\mathrm{obs}}$ and values $T_1, \dots, T_B$ on $B$ shuffled sequences, the permutation $p$-value is $p = B^{-1}\sum_{b=1}^B \mathbb I\{T_b \ge T_{\mathrm{obs}}\}$, with Monte Carlo standard error $\sqrt{p(1-p)/B}$.
+
+\paragraph{Planted chains.} The power study simulates chains with transition matrix
+\begin{equation}
+P_a = (1-a)\,\mathbf 1\pi + aW, \qquad 0 < a < 1.
+\end{equation}
+For uniform persistence $W = I$, and for rotation $W$ is the cyclic permutation that sends each sector to the next; in both cases the non-Perron eigenvalues of $P_a$ have modulus $a$. For persistence in a single sector $j$, every row equals $\pi$ except row $j$, which is $(1-a)\pi + a e_j$; the largest non-Perron modulus is then below $a$, and Table~\ref{tab:power} reports it rather than $a$.
+
+\clearpage
+\section{Derivation of the Noise Radius}
+\label{app:radius}
+
+\paragraph{Non-Perron eigenvalues are the eigenvalues of the noise.} Write the estimate as $\hat P = \mathbf 1\pi + E$. Both $\hat P$ and $\mathbf 1\pi$ have rows that sum to one, so $E\mathbf 1 = 0$. Let $Q$ be any invertible matrix whose first column is $\mathbf 1$. Since $\hat P\mathbf 1 = \mathbf 1$ and $E\mathbf 1 = 0$, the first columns of $Q^{-1}\hat P Q$ and $Q^{-1}EQ$ are $e_1$ and $0$. The matrix $Q^{-1}\mathbf 1\pi Q = e_1(\pi Q)$ is non-zero only in its first row, so $Q^{-1}\hat PQ$ and $Q^{-1}EQ$ have the same lower-right $(n-1)\times(n-1)$ block. Both are block upper-triangular, so the non-Perron eigenvalues of $\hat P$ are exactly the eigenvalues of $E$ other than its structural zero. The question of how large they are is therefore a question about the spectrum of the noise matrix.
+
+\paragraph{Variance profile.} Under the null, row $i$ of $\hat P$ is a multinomial proportion with $n_{i\cdot}$ trials and probabilities $\pi$, so $E_{ij}$ has mean zero and variance $\pi_j(1-\pi_j)/n_{i\cdot}$. With $n_{i\cdot} \approx N\pi_i$, the variance profile is
+\begin{equation*}
+V_{ij} = a_i b_j, \qquad a_i = \frac{1}{N\pi_i}, \qquad b_j = \pi_j(1-\pi_j).
+\end{equation*}
+A rank-one matrix $ab^\top$ has a single non-zero eigenvalue, $b^\top a$, so
+\begin{equation*}
+\rho(V) = \sum_j a_j b_j = \sum_j \frac{\pi_j(1-\pi_j)}{N\pi_j} = \frac1N \sum_j (1-\pi_j) = \frac{n-1}{N}.
+\end{equation*}
+For a random matrix with independent centred entries and variance profile $V$, the eigenvalue distribution is supported in the disk of radius $\sqrt{\rho(V)}$ \cite[Theorem~2.3]{cooketal2018}, which gives Eq.~\eqref{eq:radius}. Laplace smoothing multiplies row $i$ of the noise by $n_{i\cdot}/(n_{i\cdot} + \alpha n)$, which shrinks the radius slightly, by about 7\% for an average row in our sample.
+
+\paragraph{Departures from the theorem.} The theorem's assumptions do not hold exactly here. Entries within a row are negatively correlated, because each row of $E$ sums to zero, and $n = 11$ is far from the asymptotic regime of the theorem. We therefore use the radius as a scale and base inference on simulation.
+
+\paragraph{Monte Carlo check.} Under the permutation null (Section~\ref{sec:perm}), the largest non-Perron modulus of the smoothed estimate has mean 0.076 and 95th percentile 0.097 (0.098 for independently simulated sequences), against the radius $\sqrt{10/1{,}643} = 0.078$. For 1{,}000 matrices with independent uniform Dirichlet rows, the largest modulus has mean 0.182, 95th percentile 0.307 and 99th percentile 0.365, against the asymptotic Dirichlet radius $1/\sqrt{11} = 0.302$. In both cases the radius describes the typical size of the largest noise eigenvalue, with finite-sample spread around it.
+
+\clearpage
+\section{Why the Marchenko--Pastur Law Does Not Apply}
+\label{app:mp}
+
+The Marchenko--Pastur law describes the eigenvalues of a sample covariance matrix $C = L^{-1}XX^\top$, where $X$ is an $n \times L$ matrix of independent noise. When $n/L \to q$, the eigenvalues of $C$ fill the interval $[(1-\sqrt q)^2, (1+\sqrt q)^2]$ \cite{marchenkopastur1967}. A transition matrix differs from $C$ in every property the law relies on.
+\begin{enumerate}[label=\arabic*.]
+\item \emph{Symmetry.} $C$ is symmetric, so its eigenvalues are real. $\tilde P$ is not symmetric, and three of its eigenvalue pairs are complex (Table~\ref{tab:eig}).
+\item \emph{Sign of the eigenvalues.} $C$ is positive semi-definite, so its eigenvalues are non-negative. $\tilde P$ has eigenvalues with negative real parts.
+\item \emph{A fixed eigenvalue.} Every row of $\tilde P$ sums to one, so $\mathbf 1$ is always an eigenvector with eigenvalue 1. The Perron eigenvalue is fixed by construction, not estimated.
+\item \emph{How the noise enters.} In $C$ the noise enters through the product $XX^\top$. In $\hat P$ it is added to a fixed matrix, $\hat P = \mathbf 1\pi + E$ (Appendix~\ref{app:radius}), and its entries are bounded proportions with unequal variances.
+\end{enumerate}
+Comparing the eigenvalues of $\tilde P$ with a Marchenko--Pastur interval would therefore compare complex numbers with a range of real ones. The right comparison is with the spectrum of $E$, which is what Eq.~\eqref{eq:radius} describes.
+
+\clearpage
+\section{Chain Diagnostics}
+\label{app:diag}
+
+\paragraph{Hitting times.} For a target state $j$, the expected hitting times $h_i = H_{ij}$, $i \neq j$, satisfy $h_i = 1 + \sum_{k \neq j} \tilde P_{ik} h_k$, that is, $(I - \tilde P_{-j})h = \mathbf 1$, where $\tilde P_{-j}$ is $\tilde P$ with row and column $j$ removed \cite{kemenysnell1976}. Table~\ref{tab:hitting} reports the solution for every pair. The confidence intervals in Section~\ref{sec:chain} come from re-estimating $\tilde P$ on 1{,}000 sequences simulated from $\hat P$.
+
+\paragraph{Mixing time.} Table~\ref{tab:mixing} gives the exact worst-case distance to stationarity. The distance falls below 0.01 at $t = 2$. The spectral bound $|\lambda_1|^t/(2\sqrt{\pi_{\min}})$ falls below 0.01 at $t = 2.28$, close to the exact value. The bound $\log(1/(\varepsilon\,\pi_{\min}))/\gamma$ gives 8.8 days, but it assumes a reversible chain \cite{levinperes2017} and should not be used here. $\tilde P$ is not exactly reversible, although the largest violation of detailed balance, $\max_{i,j} |\pi_i \tilde P_{ij} - \pi_j \tilde P_{ji}|$, is only 0.008.
+
+\begin{table}[htbp]\centering
+\caption{Worst-case total-variation distance $d(t) = \max_i \tfrac12 \|\tilde P^t(i,\cdot) - \pi\|_1$.}
+\label{tab:mixing}
+\begin{tabular}{cc}
+\toprule
+$t$ (days) & $d(t)$ \\
+\midrule
+1 & 0.137 \\
+2 & 0.00933 \\
+3 & 0.000812 \\
+4 & $5.19\times10^{-5}$ \\
+5 & $4.44\times10^{-6}$ \\
+6 & $4.65\times10^{-7}$ \\
+7 & $3.4\times10^{-8}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Robustness Details}
+\label{app:robust}
+
+\paragraph{Order-2 test.} The order-2 model conditions on the pair $(S_{t-1}, S_t)$. Of the 121 possible pairs, 120 occur, giving $120 \times 10 = 1{,}200$ free parameters against 110 for order 1. The parametric bootstrap simulates 2{,}000 order-1 chains of 1{,}644 days from $\hat P$ and from $\tilde P$ and recomputes the likelihood ratio on each. The null means are 1{,}060 (s.d.\ 44) and 1{,}110 (s.d.\ 42), against the observed 1{,}176.2.
+
+\paragraph{Permutation schemes.} The main permutation shuffles the whole sequence. The block permutation shuffles within consecutive 21-day blocks, which preserves slow changes in the laggard frequencies, such as Energy's share rising to 0.35 in 2020. The stability tests shift the regime indicator circularly by a random number of days, which preserves the length and clustering of each regime.
+
+\paragraph{Volatility-standardised state.} Each return is divided by $\hat\sigma_{i,t-1}$, the square root of an exponentially weighted average of past squared returns with decay 0.94, so that only information available on day $t-1$ is used. The first 60 days are dropped as burn-in, leaving 1{,}584 days.
+
+\paragraph{Calendar definitions.} The consecutive-days check keeps a transition only if the two trading days are one calendar day apart, which removes Friday-to-Monday and post-holiday transitions. The option-expiry check drops transitions that start or end on a Friday between the 15th and 21st of the month, the third Friday. Weekly returns are compounded from Friday to Friday.
+
+\paragraph{Macro groupings.} In the main grouping, Defensive, Growth and Cyclical are the laggard on 36.9\%, 25.7\% and 37.5\% of days; in the alternative grouping, on 26.7\%, 18.4\% and 54.9\%.
+
+\paragraph{Lag scan.} Table~\ref{tab:lags} reports all twenty lags.
+
+\begin{table}[htbp]\centering
+\caption{Lag scan: $\chi^2$ test of $S_{t-k}$ against $S_t$ (1{,}000 permutations each) and Cram\'er's $V$ with its mean under the permutation null.}
+\label{tab:lags}
+\begin{tabular}{ccccc}
+\toprule
+Lag $k$ & $\chi^2$ & Permutation $p$ & Cram\'er's $V$ & Null mean $V$ \\
+\midrule
+1 & 104.6 & 0.354 & 0.0798 & 0.0778 \\
+2 & 132.3 & 0.016 & 0.0898 & 0.0780 \\
+3 & 109.3 & 0.236 & 0.0816 & 0.0779 \\
+4 & 148.5 & 0.001 & 0.0952 & 0.0778 \\
+5 & 123.8 & 0.054 & 0.0869 & 0.0779 \\
+6 & 120.3 & 0.082 & 0.0857 & 0.0780 \\
+7 & 104.1 & 0.349 & 0.0798 & 0.0777 \\
+8 & 131.2 & 0.022 & 0.0895 & 0.0780 \\
+9 & 90.0 & 0.771 & 0.0742 & 0.0783 \\
+10 & 105.9 & 0.318 & 0.0805 & 0.0781 \\
+11 & 91.3 & 0.709 & 0.0748 & 0.0780 \\
+12 & 91.8 & 0.710 & 0.0750 & 0.0780 \\
+13 & 104.6 & 0.363 & 0.0801 & 0.0784 \\
+14 & 77.3 & 0.961 & 0.0689 & 0.0782 \\
+15 & 73.4 & 0.977 & 0.0671 & 0.0781 \\
+16 & 85.6 & 0.857 & 0.0725 & 0.0783 \\
+17 & 94.1 & 0.680 & 0.0760 & 0.0784 \\
+18 & 98.0 & 0.545 & 0.0776 & 0.0782 \\
+19 & 97.2 & 0.573 & 0.0773 & 0.0784 \\
+20 & 116.2 & 0.145 & 0.0846 & 0.0785 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+\section{Forecast Evaluation Details}
+\label{app:oos}
+
+\paragraph{Models.} Let $f_j(t)$ be the number of days up to $t$ on which sector $j$ was the laggard, and $C^{(k)}(t)$ the lag-$k$ count matrix up to $t$. The four forecasts of $S_{t+1}$ are
+\begin{align*}
+\text{Frequency:}\quad & p_j = \frac{f_j(t) + 1}{t + 1 + n}, \\
+\text{Markov-1:}\quad & p_j = \frac{C^{(1)}_{S_t j}(t) + 1}{C^{(1)}_{S_t \cdot}(t) + n}, \\
+\text{Markov-1, shrunk:}\quad & p_j = \frac{C^{(1)}_{S_t j}(t) + K\bar p_j}{C^{(1)}_{S_t \cdot}(t) + K}, \qquad K = 11, \\
+\text{Lag-4:}\quad & p_j = \frac{C^{(4)}_{S_{t-3} j}(t) + 1}{C^{(4)}_{S_{t-3} \cdot}(t) + n},
+\end{align*}
+where $\bar p$ is the frequency forecast. In the rolling design, the counts use only the last 504 days.
+
+\paragraph{Test.} For each model, $d_t$ is its log score minus that of the frequency forecast. The Diebold--Mariano statistic is $\bar d/\widehat{\mathrm{se}}(\bar d)$, with the standard error from a Newey--West estimator with Bartlett weights and five lags.
+
+\paragraph{Other scores.} Table~\ref{tab:hitbrier} reports hit rates and Brier scores for all three designs, Table~\ref{tab:shrink} the full shrinkage sequence, and Table~\ref{tab:macro} the forecasts on three macro states.
+
+\begin{table}[htbp]\centering
+\caption{Hit rates and Brier scores of the out-of-sample forecasts. A higher hit rate and a lower Brier score are better.}
+\label{tab:hitbrier}
+\small
+\begin{tabular}{llcccc}
+\toprule
+Design & Score & Frequency & Markov-1 & Markov-1, shrunk & Lag-4 \\
+\midrule
+\multirow{2}{*}{Expanding, from day 504} & Hit rate & 23.4\% & 23.5\% & 23.4\% & 22.4\% \\
+ & Brier score & 0.8800 & 0.8856 & 0.8859 & 0.8838 \\
+\multirow{2}{*}{Rolling, 504 days} & Hit rate & 23.4\% & 21.9\% & 22.8\% & 20.9\% \\
+ & Brier score & 0.8799 & 0.8902 & 0.8909 & 0.8857 \\
+\multirow{2}{*}{Expanding, from day 252} & Hit rate & 24.4\% & 23.1\% & 23.4\% & 22.6\% \\
+ & Brier score & 0.8769 & 0.8853 & 0.8843 & 0.8836 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]\centering
+\caption{Markov-1 rows shrunk towards the frequency forecast with $K$ pseudo-counts: mean daily log-score difference from the frequency forecast and Diebold--Mariano $t$-statistic (expanding window from day 504).}
+\label{tab:shrink}
+\begin{tabular}{rcc}
+\toprule
+$K$ & Mean difference & $t$ \\
+\midrule
+11 & $-0.0400$ & $-4.05$ \\
+55 & $-0.0167$ & $-2.84$ \\
+220 & $-0.0043$ & $-1.54$ \\
+1{,}000 & $-0.0006$ & $-0.65$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]\centering
+\caption{Three macro states: mean daily log-score difference of lag-$k$ models from the frequency forecast, with the Diebold--Mariano $t$-statistic in parentheses (expanding window from day 504).}
+\label{tab:macro}
+\begin{tabular}{lccc}
+\toprule
+Grouping & Lag-1 & Lag-2 & Lag-4 \\
+\midrule
+Main grouping & $-0.0022$ $(-0.74)$ & $-0.0004$ $(-0.12)$ & $0.0006$ $(0.26)$ \\
+Alternative grouping & $-0.0031$ $(-1.05)$ & $0.0022$ $(0.89)$ & $-0.0026$ $(-1.26)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\clearpage
+\begin{thebibliography}{99}
+
+\bibitem{marchenkopastur1967}
+Marchenko, V. A., \& Pastur, L. A. (1967).
+Distribution of eigenvalues for some sets of random matrices.
+\textit{Matematicheskii Sbornik}, 72(114)(4), 507--536.
+
+\bibitem{bordenave2012}
+Bordenave, C., Caputo, P., \& Chafa\"i, D. (2012).
+Circular law theorem for random Markov matrices.
+\textit{Probability Theory and Related Fields}, 152(3--4), 751--779.
+
+\bibitem{cooketal2018}
+Cook, N., Hachem, W., Najim, J., \& Renfrew, D. (2018).
+Non-Hermitian random matrices with a variance profile (I): Deterministic equivalents and limiting ESDs.
+\textit{Electronic Journal of Probability}, 23. doi:10.1214/18-EJP230.
 
 \bibitem{hamilton1989}
 Hamilton, J. D. (1989).
@@ -405,15 +773,15 @@ Moskowitz, T. J., \& Grinblatt, M. (1999).
 Do industries explain momentum?
 \textit{The Journal of Finance}, 54(4), 1249--1290.
 
-\bibitem{jacobsenetal2009}
-Jacobsen, B., Stangl, J. S., \& Visaltanachoti, N. (2009).
+\bibitem{stangletal2009}
+Stangl, J., Jacobsen, B., \& Visaltanachoti, N. (2009).
 Sector rotation across the business cycle.
-Working paper, SSRN 1467457.
+Working paper 1572910, SSRN.
 
 \bibitem{molchanovstangl2024}
 Molchanov, A., \& Stangl, J. (2024).
 The myth of business cycle sector rotation.
-\textit{International Journal of Finance \& Economics}, 29(4), 4419--4442.
+\textit{International Journal of Finance \& Economics}, 29(4), 4419--4442. doi:10.1002/ijfe.2882.
 
 \bibitem{lalouxetal1999}
 Laloux, L., Cizeau, P., Bouchaud, J.-P., \& Potters, M. (1999).
@@ -422,28 +790,32 @@ Noise dressing of financial correlation matrices.
 
 \bibitem{plerouetal2000}
 Plerou, V., Gopikrishnan, P., Rosenow, B., Amaral, L. A. N., \& Stanley, H. E. (2000).
-Random matrix theory approach to financial cross-correlations.
+A random matrix theory approach to financial cross-correlations.
 \textit{Physica A}, 287(3--4), 374--382.
 
 \bibitem{bouchaudpotters2009}
 Bouchaud, J.-P., \& Potters, M. (2009).
-Financial applications of random matrix theory: a short review.
+Financial applications of random matrix theory: A short review.
 arXiv:0910.1205.
 
-\bibitem{bordenave2012}
-Bordenave, C., Caputo, P., \& Chafa\"i, D. (2012).
-Circular law theorem for random Markov matrices.
-\textit{Probability Theory and Related Fields}, 152(3--4), 751--779.
+\bibitem{gneitingraftery2007}
+Gneiting, T., \& Raftery, A. E. (2007).
+Strictly proper scoring rules, prediction, and estimation.
+\textit{Journal of the American Statistical Association}, 102(477), 359--378.
 
-\bibitem{marchenkopastur1967}
-Marchenko, V. A., \& Pastur, L. A. (1967).
-Distribution of eigenvalues for some sets of random matrices.
-\textit{Matematicheskii Sbornik}, 114(4), 507--536.
+\bibitem{dieboldmariano1995}
+Diebold, F. X., \& Mariano, R. S. (1995).
+Comparing predictive accuracy.
+\textit{Journal of Business \& Economic Statistics}, 13(3), 253--263.
 
-\bibitem{seneta2006}
-Seneta, E. (2006).
-\textit{Non-negative Matrices and Markov Chains} (2nd ed.).
-Springer.
+\bibitem{neweywest1987}
+Newey, W. K., \& West, K. D. (1987).
+A simple, positive semi-definite, heteroskedasticity and autocorrelation consistent covariance matrix.
+\textit{Econometrica}, 55(3), 703--708.
+
+\bibitem{crsp}
+Center for Research in Security Prices.
+Daily stock file. University of Chicago Booth School of Business, accessed via Wharton Research Data Services, 2025.
 
 \bibitem{kemenysnell1976}
 Kemeny, J. G., \& Snell, J. L. (1976).
@@ -451,18 +823,54 @@ Kemeny, J. G., \& Snell, J. L. (1976).
 Springer-Verlag.
 
 \bibitem{levinperes2017}
-Levin, D. A., Peres, Y., \& Wilmer, E. L. (2017).
+Levin, D. A., \& Peres, Y. (2017).
 \textit{Markov Chains and Mixing Times} (2nd ed.).
-American Mathematical Society.
+American Mathematical Society. With contributions by Elizabeth L. Wilmer.
+
+\bibitem{andersongoodman1957}
+Anderson, T. W., \& Goodman, L. A. (1957).
+Statistical inference about Markov chains.
+\textit{The Annals of Mathematical Statistics}, 28(1), 89--110.
+
+\bibitem{benjaminihochberg1995}
+Benjamini, Y., \& Hochberg, Y. (1995).
+Controlling the false discovery rate: A practical and powerful approach to multiple testing.
+\textit{Journal of the Royal Statistical Society: Series B (Methodological)}, 57(1), 289--300.
+
+\bibitem{brier1950}
+Brier, G. W. (1950).
+Verification of forecasts expressed in terms of probability.
+\textit{Monthly Weather Review}, 78(1), 1--3.
+
+\bibitem{shaw2024}
+Shaw, D. (2024).
+S\&P adjusts rules for tech-heavy sector indexes.
+etf.com, 8 October. \url{https://www.etf.com/sections/news/sp-adjusts-rules-tech-heavy-sector-indexes}.
+
+\bibitem{msci2018}
+MSCI and S\&P Dow Jones Indices (2018).
+GICS structure revisions in 2018.
+\url{https://www-cdn.msci.com/documents/1296102/5603800/GICS+Structure+Revisions+in+2018.pdf}.
+
+\bibitem{thinkadvisor2018}
+ThinkAdvisor (2018).
+A massive shift in stock sector classifications starts today. 24 September.
+\url{https://thinkadvisor.com/2018/09/24/a-massive-shift-in-stock-sector-classifications-st}.
+
+\bibitem{spdji2023}
+S\&P Dow Jones Indices (2023).
+2023 GICS changes: S\&P Global 1200 impact analysis. Indexology blog, 16 March.
+\url{https://www.indexologyblog.com/2023/03/16/2023-gics-changes-sp-global-1200-impact-analysis/}.
+
+\bibitem{seneta2006}
+Seneta, E. (2006).
+\textit{Non-negative Matrices and Markov Chains} (2nd ed.).
+Springer. Revised reprint of the 2nd edition (1981).
 
 \bibitem{norris1998}
 Norris, J. R. (1998).
 \textit{Markov Chains}.
 Cambridge University Press.
-
-\bibitem{crsp}
-Center for Research in Security Prices (CRSP), University of Chicago Booth School of Business.
-Daily Stock File, accessed via Wharton Research Data Services (WRDS), 2025.
 
 \end{thebibliography}
 

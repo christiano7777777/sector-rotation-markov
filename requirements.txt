@@ -4,4 +4,5 @@ scipy>=1.10
 matplotlib>=3.7
 jupyter>=1.0
 nbformat>=5.9
+openpyxl>=3.1
 wrds>=3.1  # only needed if re-pulling raw data from WRDS/CRSP
